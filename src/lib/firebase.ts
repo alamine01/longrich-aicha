@@ -12,9 +12,28 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
-// Initialisation
-const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+// Initialisation sécurisée (évite les crashs Vercel lors du build si les variables manquent temporairement)
+let app;
+let db: any;
+let auth: any;
+
+if (typeof window !== "undefined" && !getApps().length) {
+  // Client-side initialization
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  auth = getAuth(app);
+} else if (getApps().length > 0) {
+  // Already initialized
+  app = getApp();
+  db = getFirestore(app);
+  auth = getAuth(app);
+} else if (process.env.NEXT_PUBLIC_FIREBASE_API_KEY) {
+  // Server-side initialization (if variables are present)
+  app = initializeApp(firebaseConfig);
+  db = getFirestore(app);
+  auth = getAuth(app);
+} else {
+  console.warn("⚠️ Firebase configs are missing. App may not work correctly.");
+}
 
 export { app, db, auth };

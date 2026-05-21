@@ -35,7 +35,7 @@ export default function SalesPage() {
   // New state for scan modal
   const [scanModalOpen, setScanModalOpen] = useState(false);
   const [scannedProduct, setScannedProduct] = useState<any>(null);
-  const [scanQuantity, setScanQuantity] = useState(1);
+  const [scanQuantity, setScanQuantity] = useState<number | "">(1);
   const [scanClientName, setScanClientName] = useState("");
   const [scanClientSN, setScanClientSN] = useState("");
   const [scanPaymentMethod, setScanPaymentMethod] = useState("cash");
@@ -448,7 +448,10 @@ export default function SalesPage() {
                 min={1}
                 max={scannedProduct.stock}
                 value={scanQuantity}
-                onChange={e => setScanQuantity(Number(e.target.value))}
+                onChange={e => {
+                  const val = e.target.value;
+                  setScanQuantity(val === "" ? "" : Number(val));
+                }}
                 className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal"
               />
             </div>

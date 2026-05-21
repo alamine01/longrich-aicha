@@ -10,17 +10,12 @@
   --color-brand-teal-dark: #157a8c;
 }
 
+@variant dark (.never-match-dark-mode);
+
 :root {
   --background: #f1f5f9;
   --foreground: #1e293b;
   --brand: #1b99af;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0f172a;
-    --foreground: #f8fafc;
-  }
 }
 
 body {

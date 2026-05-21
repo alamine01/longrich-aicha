@@ -18,9 +18,30 @@ export default function LoginPage() {
   const router = useRouter();
   const { user, verifyTwoFactor } = useAuth();
 
+  const send2FACode = async (targetEmail: string) => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch("/api/send-2fa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: targetEmail }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Erreur lors de l'envoi du code 2FA");
+      }
+    } catch (err: any) {
+      setError(err.message || "Impossible d'envoyer le code de sécurité.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   React.useEffect(() => {
-    if (user) {
+    if (user && step === 1) {
       setStep(2);
+      send2FACode(user.email || "");
     }
   }, [user]);
 
@@ -30,27 +51,40 @@ export default function LoginPage() {
     setError("");
     
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-      setStep(2); // Move to 2FA step
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      setStep(2);
+      await send2FACode(userCredential.user.email || email);
     } catch (err: any) {
       setError("Identifiants incorrects. Veuillez réessayer.");
       console.log("Login error:", err.message);
-    } finally {
       setLoading(false);
     }
   };
 
-  const handleVerify2FA = (e: React.FormEvent) => {
+  const handleVerify2FA = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError("");
     
-    // Simple 2FA simulation for now (Code is 123456)
-    // In production, this would verify an SMS or TOTP code
-    if (twoFactorCode === "123456") {
+    try {
+      const currentEmail = email || user?.email;
+      if (!currentEmail) {
+        throw new Error("Email manquant pour la vérification");
+      }
+      const res = await fetch("/api/verify-2fa", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: currentEmail, code: twoFactorCode }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Code incorrect ou expiré");
+      }
+      
       verifyTwoFactor();
       router.push("/");
-    } else {
-      setError("Code incorrect. Veuillez réessayer.");
+    } catch (err: any) {
+      setError(err.message || "Code incorrect. Veuillez réessayer.");
       setLoading(false);
     }
   };
@@ -158,13 +192,23 @@ export default function LoginPage() {
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : "VÉRIFIER LE CODE"}
               </button>
               
-              <button 
-                type="button"
-                onClick={() => setStep(1)}
-                className="w-full text-sm text-slate-500 hover:text-indigo-600 font-medium transition-colors"
-              >
-                Retour à la connexion
-              </button>
+              <div className="flex flex-col space-y-2 text-center">
+                <button
+                  type="button"
+                  onClick={() => send2FACode(email || user?.email || "")}
+                  disabled={loading}
+                  className="text-xs text-brand-teal hover:underline font-bold"
+                >
+                  Renvoyer le code de sécurité
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="text-sm text-slate-500 hover:text-indigo-600 font-medium transition-colors"
+                >
+                  Retour à la connexion
+                </button>
+              </div>
             </form>
           )}
         </div>

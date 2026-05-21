@@ -250,8 +250,8 @@ export default function ProductsPage() {
             <Loader2 className="w-8 h-8 animate-spin text-brand-teal" />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="overflow-x-auto w-full">
+            <table className="w-full text-left border-collapse min-w-[900px]">
               <thead>
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Produit</th>
@@ -351,14 +351,14 @@ export default function ProductsPage() {
       {/* Add Modal */}
       {isAddModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <form onSubmit={handleAddProduct} className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-800">
+          <form onSubmit={handleAddProduct} className="bg-white dark:bg-slate-900 w-[95%] max-w-lg max-h-[90vh] flex flex-col rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-800 shrink-0">
               <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                 {editingProduct ? "Modifier le Produit" : "Nouveau Produit"}
               </h2>
               <p className="text-sm text-slate-500">Saisissez les informations du produit Longrich.</p>
             </div>
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-4 overflow-y-auto">
               <div>
                 <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Nom du produit *</label>
                 <input 

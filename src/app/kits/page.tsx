@@ -359,7 +359,7 @@ export default function KitsPage() {
 
       {selectedKit && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <form onSubmit={handleRegister} className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
+          <form onSubmit={handleRegister} className="bg-white dark:bg-slate-900 w-[95%] max-w-md rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 max-h-[90vh] flex flex-col">
             <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
               <div>
                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">Adhésion : {selectedKit.name}</h2>

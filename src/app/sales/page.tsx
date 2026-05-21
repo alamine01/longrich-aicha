@@ -32,6 +32,13 @@ export default function SalesPage() {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  // New state for scan modal
+  const [scanModalOpen, setScanModalOpen] = useState(false);
+  const [scannedProduct, setScannedProduct] = useState<any>(null);
+  const [scanQuantity, setScanQuantity] = useState(1);
+  const [scanClientName, setScanClientName] = useState("");
+  const [scanClientSN, setScanClientSN] = useState("");
+  const [scanPaymentMethod, setScanPaymentMethod] = useState("cash");
 
   useEffect(() => {
     // Écouter les produits en temps réel
@@ -59,7 +66,13 @@ export default function SalesPage() {
     const product = availableProducts.find(p => p.barcode === code);
     if (product) {
       if (product.stock > 0) {
-        addToCart(product);
+        // Open modal to ask quantity and client info
+        setScannedProduct(product);
+        setScanQuantity(1);
+        setScanClientName("");
+        setScanClientSN("");
+        setScanPaymentMethod("cash");
+        setScanModalOpen(true);
         setSearchQuery("");
       } else {
         alert(`Le produit "${product.name}" est en rupture de stock !`);
@@ -88,21 +101,23 @@ export default function SalesPage() {
     (p.barcode && p.barcode.includes(searchQuery.trim()))
   );
 
-  const addToCart = (product: any) => {
-    if (product.stock <= 0) {
+  // Updated addToCart to accept quantity
+  const addToCart = (product: any, qty: number = 1) => {
+    if (product.stock < qty) {
       alert(`Stock insuffisant pour ${product.name}`);
       return;
     }
 
     const existing = cart.find(item => item.id === product.id);
     if (existing) {
-      if (existing.quantity >= product.stock) {
+      const newQty = existing.quantity + qty;
+      if (newQty > product.stock) {
         alert(`Stock maximum atteint pour ${product.name}`);
         return;
       }
-      setCart(cart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
+      setCart(cart.map(item => item.id === product.id ? { ...item, quantity: newQty } : item));
     } else {
-      setCart([...cart, { ...product, quantity: 1 }]);
+      setCart([...cart, { ...product, quantity: qty }]);
     }
   };
 
@@ -177,6 +192,21 @@ export default function SalesPage() {
       alert("Une erreur est survenue lors de l'enregistrement de la vente.");
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleConfirmScan = () => {
+    if (scannedProduct) {
+      const qty = Number(scanQuantity);
+      if (isNaN(qty) || qty < 1) {
+        alert('Quantité invalide');
+        return;
+      }
+      addToCart(scannedProduct, qty);
+      setCustomerName(scanClientName);
+      setCustomerSN(scanClientSN);
+      setPaymentMethod(scanPaymentMethod);
+      setScanModalOpen(false);
     }
   };
 
@@ -276,12 +306,12 @@ export default function SalesPage() {
             ) : (
               <div className="space-y-4">
                 {cart.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">
+                  <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 gap-4">
                     <div className="flex-1">
                       <p className="font-bold text-slate-900 dark:text-white">{item.name}</p>
                       <p className="text-xs text-slate-500">{item.price.toLocaleString()} FCFA / unité</p>
                     </div>
-                    <div className="flex items-center space-x-4">
+                    <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-4">
                       <div className="flex items-center bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">
                         <button onClick={() => updateQuantity(item.id, -1)} className="p-2 hover:text-brand-teal"><Minus className="w-4 h-4" /></button>
                         <span className="w-8 text-center font-bold">{item.quantity}</span>
@@ -392,6 +422,102 @@ export default function SalesPage() {
           </div>
         </div>
       </div>
+
+      {/* Modal Détails Scan */}
+      {scanModalOpen && scannedProduct && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black/50 z-50 p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-5 border border-slate-200 dark:border-slate-700 animate-in fade-in">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center">
+                <Barcode className="w-5 h-5 mr-2 text-brand-teal" />
+                Produit Scanné
+              </h2>
+              <button onClick={() => setScanModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            </div>
+
+            <div className="p-3 bg-brand-teal/10 rounded-xl border border-brand-teal/20">
+              <p className="font-bold text-slate-900 dark:text-white">{scannedProduct.name}</p>
+              <p className="text-sm text-slate-500">{scannedProduct.price?.toLocaleString()} FCFA | <span className="text-brand-teal font-medium">{scannedProduct.pv} PV</span></p>
+              <p className="text-xs text-emerald-500 font-bold mt-1">Stock disponible: {scannedProduct.stock}</p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Quantité</label>
+              <input
+                type="number"
+                min={1}
+                max={scannedProduct.stock}
+                value={scanQuantity}
+                onChange={e => setScanQuantity(Number(e.target.value))}
+                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nom du Client</label>
+              <input
+                type="text"
+                value={scanClientName}
+                onChange={e => setScanClientName(e.target.value)}
+                placeholder="Ex: Jean Dupont"
+                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">SN Longrich (ID)</label>
+              <input
+                type="text"
+                value={scanClientSN}
+                onChange={e => setScanClientSN(e.target.value)}
+                placeholder="Ex: CI01234567"
+                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Méthode de Paiement</label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'cash', label: 'Espèces', icon: Banknote },
+                  { id: 'wave', label: 'Wave', icon: Smartphone },
+                  { id: 'orange', label: 'Orange', icon: Smartphone },
+                ].map(method => (
+                  <button
+                    key={method.id}
+                    type="button"
+                    onClick={() => setScanPaymentMethod(method.id)}
+                    className={cn(
+                      "flex flex-col items-center justify-center p-2 rounded-xl border transition-all",
+                      scanPaymentMethod === method.id
+                        ? "bg-brand-teal border-brand-teal text-white shadow-lg shadow-brand-teal/20"
+                        : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 hover:border-brand-teal/50"
+                    )}
+                  >
+                    <method.icon className="w-5 h-5 mb-1" />
+                    <span className="text-xs font-bold">{method.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex space-x-3 pt-2">
+              <button
+                onClick={() => setScanModalOpen(false)}
+                className="flex-1 py-3 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleConfirmScan}
+                className="flex-1 py-3 bg-brand-teal text-white font-bold rounded-xl hover:bg-brand-teal-dark transition-all shadow-lg shadow-brand-teal/20"
+              >
+                Ajouter au Panier
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal Scanner Caméra */}
       <BarcodeScannerModal 

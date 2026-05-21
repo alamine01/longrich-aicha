@@ -16,7 +16,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const router = useRouter();
-  const { verifyTwoFactor } = useAuth();
+  const { user, verifyTwoFactor } = useAuth();
+
+  React.useEffect(() => {
+    if (user) {
+      setStep(2);
+    }
+  }, [user]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +34,7 @@ export default function LoginPage() {
       setStep(2); // Move to 2FA step
     } catch (err: any) {
       setError("Identifiants incorrects. Veuillez réessayer.");
-      console.error(err);
+      console.log("Login error:", err.message);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Search, 
   ShoppingCart, 
@@ -13,49 +13,172 @@ import {
   Minus,
   Barcode,
   ChevronRight,
-  FileText
+  FileText,
+  Loader2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-// Sample Products for selection
-const availableProducts = [
-  { id: 1, name: "Savon Noir Longrich", price: 3500, pv: 2, stock: 45 },
-  { id: 2, name: "Dentifrice Longrich", price: 4500, pv: 3.5, stock: 120 },
-  { id: 3, name: "Gobelet Alcalin", price: 45000, pv: 60, stock: 15 },
-  { id: 4, name: "Cordyceps Militaris", price: 55000, pv: 80, stock: 8 },
-];
+import BarcodeScannerModal from "@/components/BarcodeScannerModal";
+import { collection, onSnapshot, writeBatch, doc, serverTimestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 export default function SalesPage() {
+  const [availableProducts, setAvailableProducts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
   const [cart, setCart] = useState<any[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [customerSN, setCustomerSN] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    // Écouter les produits en temps réel
+    const unsubscribe = onSnapshot(collection(db, "products"), (snapshot) => {
+      const prods = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setAvailableProducts(prods);
+      setLoading(false);
+    }, (error) => {
+      console.error("Erreur de récupération des produits:", error);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+  
+  const handleScan = (code: string) => {
+    try {
+      const audio = new Audio('/beep.mp3');
+      audio.play().catch(e => console.log('Audio non supporté'));
+    } catch(e) {}
+
+    const product = availableProducts.find(p => p.barcode === code);
+    if (product) {
+      if (product.stock > 0) {
+        addToCart(product);
+        setSearchQuery("");
+      } else {
+        alert(`Le produit "${product.name}" est en rupture de stock !`);
+      }
+    } else {
+      alert(`Produit non trouvé pour le code : ${code}`);
+    }
+  };
+
+  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && searchQuery.trim() !== "") {
+      const exactMatch = availableProducts.find(p => p.barcode === searchQuery.trim());
+      if (exactMatch) {
+        if (exactMatch.stock > 0) {
+          addToCart(exactMatch);
+          setSearchQuery("");
+        } else {
+          alert(`Le produit "${exactMatch.name}" est en rupture de stock !`);
+        }
+      }
+    }
+  };
+
+  const filteredProducts = availableProducts.filter(p => 
+    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    (p.barcode && p.barcode.includes(searchQuery.trim()))
+  );
 
   const addToCart = (product: any) => {
+    if (product.stock <= 0) {
+      alert(`Stock insuffisant pour ${product.name}`);
+      return;
+    }
+
     const existing = cart.find(item => item.id === product.id);
     if (existing) {
+      if (existing.quantity >= product.stock) {
+        alert(`Stock maximum atteint pour ${product.name}`);
+        return;
+      }
       setCart(cart.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
     } else {
       setCart([...cart, { ...product, quantity: 1 }]);
     }
   };
 
-  const updateQuantity = (id: number, delta: number) => {
+  const updateQuantity = (id: string, delta: number) => {
+    const product = availableProducts.find(p => p.id === id);
     setCart(cart.map(item => {
       if (item.id === id) {
         const newQty = Math.max(1, item.quantity + delta);
+        if (product && newQty > product.stock) {
+          alert(`Stock insuffisant. Maximum: ${product.stock}`);
+          return item;
+        }
         return { ...item, quantity: newQty };
       }
       return item;
     }));
   };
 
-  const removeFromCart = (id: number) => {
+  const removeFromCart = (id: string) => {
     setCart(cart.filter(item => item.id !== id));
   };
 
   const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalPV = cart.reduce((sum, item) => sum + (item.pv * item.quantity), 0);
+
+  const handleCheckout = async () => {
+    if (cart.length === 0) return;
+    setIsSaving(true);
+
+    try {
+      const batch = writeBatch(db);
+
+      // 1. Créer la commande dans "sales"
+      const salesRef = doc(collection(db, "sales"));
+      batch.set(salesRef, {
+        customerName: customerName || "Client Comptoir",
+        customerSN: customerSN || null,
+        paymentMethod,
+        totalAmount,
+        totalPV,
+        items: cart.map(item => ({
+          productId: item.id,
+          name: item.name,
+          price: item.price,
+          pv: item.pv,
+          quantity: item.quantity
+        })),
+        createdAt: serverTimestamp()
+      });
+
+      // 2. Mettre à jour les stocks dans "products"
+      cart.forEach(item => {
+        const productRef = doc(db, "products", item.id);
+        const originalProduct = availableProducts.find(p => p.id === item.id);
+        if (originalProduct) {
+          const newStock = Math.max(0, originalProduct.stock - item.quantity);
+          batch.update(productRef, { stock: newStock });
+        }
+      });
+
+      await batch.commit();
+
+      // Réinitialiser le panier et l'interface
+      setCart([]);
+      setCustomerName("");
+      setCustomerSN("");
+      setPaymentMethod("cash");
+      alert("Vente validée avec succès !");
+
+    } catch (error) {
+      console.error("Erreur lors de la validation de la vente:", error);
+      alert("Une erreur est survenue lors de l'enregistrement de la vente.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -65,7 +188,11 @@ export default function SalesPage() {
           <div className="flex items-center justify-between mb-6">
             <h1 className="text-xl font-bold text-slate-900 dark:text-white">Effectuer une Vente</h1>
             <div className="flex space-x-2">
-              <button className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 hover:text-brand-teal transition-colors">
+              <button 
+                onClick={() => setIsScannerOpen(true)}
+                className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 hover:text-brand-teal transition-colors"
+                title="Scanner avec la caméra"
+              >
                 <Barcode className="w-6 h-6" />
               </button>
             </div>
@@ -75,26 +202,57 @@ export default function SalesPage() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Rechercher un produit à ajouter..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearchKeyDown}
+              placeholder="Rechercher par nom ou scanner code-barres..."
               className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-brand-teal outline-none transition-all"
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {availableProducts.map((product) => (
-              <button 
-                key={product.id}
-                onClick={() => addToCart(product)}
-                className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-800 hover:border-brand-teal hover:bg-brand-teal/5 dark:hover:bg-brand-teal/10 transition-all text-left group"
-              >
-                <div>
-                  <p className="font-bold text-slate-900 dark:text-white group-hover:text-brand-teal">{product.name}</p>
-                  <p className="text-sm text-slate-500">{product.price.toLocaleString()} FCFA | <span className="text-brand-teal font-medium">{product.pv} PV</span></p>
+          {loading ? (
+            <div className="py-12 flex justify-center">
+              <Loader2 className="w-8 h-8 animate-spin text-brand-teal" />
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[500px] overflow-y-auto pr-2">
+              {filteredProducts.map((product) => (
+                <button 
+                  key={product.id}
+                  onClick={() => addToCart(product)}
+                  disabled={product.stock <= 0}
+                  className={cn(
+                    "flex items-center justify-between p-4 rounded-xl border text-left group transition-all",
+                    product.stock > 0 
+                      ? "border-slate-200 dark:border-slate-800 hover:border-brand-teal hover:bg-brand-teal/5 dark:hover:bg-brand-teal/10" 
+                      : "border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 opacity-60 cursor-not-allowed"
+                  )}
+                >
+                  <div>
+                    <p className={cn(
+                      "font-bold",
+                      product.stock > 0 ? "text-slate-900 dark:text-white group-hover:text-brand-teal" : "text-slate-500"
+                    )}>{product.name}</p>
+                    <p className="text-sm text-slate-500">
+                      {product.price.toLocaleString()} FCFA | <span className="text-brand-teal font-medium">{product.pv} PV</span>
+                    </p>
+                    <p className={cn(
+                      "text-xs font-bold mt-1",
+                      product.stock > 10 ? "text-emerald-500" : product.stock > 0 ? "text-amber-500" : "text-rose-500"
+                    )}>
+                      Stock: {product.stock}
+                    </p>
+                  </div>
+                  {product.stock > 0 && <Plus className="w-5 h-5 text-slate-400 group-hover:text-brand-teal" />}
+                </button>
+              ))}
+              {filteredProducts.length === 0 && (
+                <div className="col-span-full py-8 text-center text-slate-500">
+                  Aucun produit trouvé.
                 </div>
-                <Plus className="w-5 h-5 text-slate-400 group-hover:text-brand-teal" />
-              </button>
-            ))}
-          </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Cart Display */}
@@ -213,22 +371,34 @@ export default function SalesPage() {
               <span className="font-black text-xl text-slate-900 dark:text-white whitespace-nowrap">{totalAmount.toLocaleString()} FCFA</span>
             </div>
             <button 
-              disabled={cart.length === 0}
+              disabled={cart.length === 0 || isSaving}
+              onClick={handleCheckout}
               className="w-full mt-4 bg-brand-teal text-white font-black py-4 rounded-xl hover:bg-brand-teal-dark transition-all disabled:bg-slate-300 disabled:cursor-not-allowed shadow-xl shadow-brand-teal/20 dark:shadow-none flex items-center justify-center"
             >
-              VALIDER LA VENTE
-              <ChevronRight className="w-5 h-5 ml-2" />
+              {isSaving ? <Loader2 className="w-5 h-5 animate-spin" /> : (
+                <>
+                  VALIDER LA VENTE
+                  <ChevronRight className="w-5 h-5 ml-2" />
+                </>
+              )}
             </button>
             <button 
-            onClick={() => window.print()}
-            className="w-full flex items-center justify-center py-2 text-slate-500 hover:text-brand-teal transition-colors text-sm font-bold"
-          >
+              onClick={() => window.print()}
+              className="w-full flex items-center justify-center py-2 text-slate-500 hover:text-brand-teal transition-colors text-sm font-bold"
+            >
               <FileText className="w-4 h-4 mr-2" />
               Générer Proforma / Reçu
             </button>
           </div>
         </div>
       </div>
+
+      {/* Modal Scanner Caméra */}
+      <BarcodeScannerModal 
+        isOpen={isScannerOpen} 
+        onClose={() => setIsScannerOpen(false)} 
+        onScan={handleScan} 
+      />
     </div>
   );
 }

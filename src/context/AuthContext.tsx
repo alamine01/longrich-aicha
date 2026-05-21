@@ -26,21 +26,51 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-      
-      // If not logged in and not on login page, redirect to login
-      if (!user && pathname !== "/login") {
-        router.push("/login");
-      }
-    });
+  const [error, setError] = useState<Error | null>(null);
 
-    return () => unsubscribe();
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const verified = sessionStorage.getItem("isTwoFactorVerified") === "true";
+      if (verified) setIsTwoFactorVerified(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const unsubscribe = onAuthStateChanged(
+        auth,
+        (user) => {
+          setUser(user);
+          setLoading(false);
+          
+          const verified = typeof window !== "undefined" && sessionStorage.getItem("isTwoFactorVerified") === "true";
+          
+          // If not logged in, or logged in but 2FA not verified, redirect to login
+          if ((!user || !verified) && pathname !== "/login") {
+            router.push("/login");
+          }
+        },
+        (error) => {
+          console.error("Firebase Auth Error:", error);
+          setError(error);
+          setLoading(false);
+        }
+      );
+
+      return () => unsubscribe();
+    } catch (err: any) {
+      console.error("Firebase Initialization Error:", err);
+      setError(err);
+      setLoading(false);
+    }
   }, [pathname, router]);
 
-  const verifyTwoFactor = () => setIsTwoFactorVerified(true);
+  const verifyTwoFactor = () => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("isTwoFactorVerified", "true");
+    }
+    setIsTwoFactorVerified(true);
+  };
 
   return (
     <AuthContext.Provider value={{ user, loading, isTwoFactorVerified, verifyTwoFactor }}>

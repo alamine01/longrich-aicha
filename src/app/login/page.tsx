@@ -212,7 +212,7 @@ export default function LoginPage() {
         </div>
         
         <p className="text-center text-slate-400 text-xs mt-8">
-          &copy; 2024 Longrich Admin System. Tous droits réservés.
+          &copy; {new Date().getFullYear()} Longrich Admin System. Tous droits réservés.
         </p>
       </div>
     </div>

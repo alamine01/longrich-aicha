@@ -22,18 +22,11 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [isTwoFactorVerified, setIsTwoFactorVerified] = useState(false);
+  const [isTwoFactorVerified, setIsTwoFactorVerified] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
   const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      const verified = sessionStorage.getItem("isTwoFactorVerified") === "true";
-      if (verified) setIsTwoFactorVerified(true);
-    }
-  }, []);
 
   useEffect(() => {
     try {
@@ -43,10 +36,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(user);
           setLoading(false);
           
-          const verified = typeof window !== "undefined" && sessionStorage.getItem("isTwoFactorVerified") === "true";
-          
-          // If not logged in, or logged in but 2FA not verified, redirect to login
-          if ((!user || !verified) && pathname !== "/login") {
+          // If not logged in, redirect to login
+          if (!user && pathname !== "/login") {
             router.push("/login");
           }
         },
@@ -66,9 +57,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [pathname, router]);
 
   const verifyTwoFactor = () => {
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem("isTwoFactorVerified", "true");
-    }
     setIsTwoFactorVerified(true);
   };
 

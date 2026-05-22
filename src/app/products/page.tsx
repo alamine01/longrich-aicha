@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import { collection, onSnapshot, addDoc, deleteDoc, doc, serverTimestamp, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import BarcodePrintModal from "@/components/BarcodePrintModal";
+import BarcodeScannerModal from "@/components/BarcodeScannerModal";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<any[]>([]);
@@ -40,6 +41,32 @@ export default function ProductsPage() {
   const [barcode, setBarcode] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [barcodePrintProduct, setBarcodePrintProduct] = useState<any>(null);
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+
+  const handleScan = (code: string) => {
+    const existingProduct = products.find(p => p.barcode === code.trim());
+    if (existingProduct) {
+      // Product already exists -> Open the modal in Edit mode to add stock or update info!
+      setEditingProduct(existingProduct);
+      setName(existingProduct.name || "");
+      setCategory(existingProduct.category || "Soins");
+      setPrice(existingProduct.price?.toString() || "");
+      setPv(existingProduct.pv?.toString() || "");
+      setStock(existingProduct.stock?.toString() || "");
+      setBarcode(existingProduct.barcode || "");
+      setIsAddModalOpen(true);
+    } else {
+      // Product does not exist -> Open the modal in Create mode with the barcode prefilled!
+      setEditingProduct(null);
+      setName("");
+      setCategory("Soins");
+      setPrice("");
+      setPv("");
+      setStock("");
+      setBarcode(code.trim());
+      setIsAddModalOpen(true);
+    }
+  };
 
   // Génère un code-barres unique basé sur un préfixe + timestamp
   const generateBarcode = (): string => {
@@ -86,11 +113,12 @@ export default function ProductsPage() {
 
       if (editingProduct) {
         // Update existing product
+        productData.barcode = barcode.trim() || editingProduct.barcode || generateBarcode();
         await updateDoc(doc(db, "products", editingProduct.id), productData);
         alert("Produit modifié avec succès !");
       } else {
         // Create new product
-        productData.barcode = generateBarcode();
+        productData.barcode = barcode.trim() || generateBarcode();
         productData.createdAt = serverTimestamp();
         
         const timeoutPromise = new Promise((_, reject) => 
@@ -165,12 +193,21 @@ export default function ProductsPage() {
         </div>
         <div className="flex items-center space-x-3">
           <button 
+            onClick={() => setIsScannerOpen(true)}
+            className="flex items-center px-4 py-2 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors border border-slate-200 dark:border-slate-800 shadow-sm"
+            title="Scanner code-barres"
+          >
+            <Barcode className="w-4 h-4 mr-2 text-brand-teal" />
+            Scanner Stock
+          </button>
+          <button 
             onClick={() => {
               setEditingProduct(null);
               setName("");
               setPrice("");
               setPv("");
               setStock("");
+              setBarcode("");
               setIsAddModalOpen(true);
             }}
             className="flex items-center px-4 py-2 bg-brand-teal text-white rounded-lg hover:bg-brand-teal-dark transition-colors shadow-lg shadow-brand-teal/20 dark:shadow-none"
@@ -447,10 +484,16 @@ export default function ProductsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Code-barres</label>
-                <div className="flex items-center space-x-2 px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800/60">
-                  <Barcode className="w-4 h-4 text-brand-teal" />
-                  <span className="text-sm text-slate-500 dark:text-slate-400">Généré automatiquement à l'enregistrement</span>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Code-barres (laisser vide pour générer)</label>
+                <div className="relative">
+                  <Barcode className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input 
+                    type="text" 
+                    value={barcode}
+                    onChange={(e) => setBarcode(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-brand-teal text-slate-800 dark:text-slate-200" 
+                    placeholder="Entrer un code-barres ou laisser vide" 
+                  />
                 </div>
               </div>
             </div>
@@ -464,6 +507,7 @@ export default function ProductsPage() {
                   setPrice("");
                   setPv("");
                   setStock("");
+                  setBarcode("");
                 }}
                 className="px-4 py-2 text-slate-600 hover:text-slate-800 font-medium"
               >
@@ -489,6 +533,13 @@ export default function ProductsPage() {
           onClose={() => setBarcodePrintProduct(null)}
         />
       )}
+
+      {/* Barcode Scanner Modal */}
+      <BarcodeScannerModal 
+        isOpen={isScannerOpen} 
+        onClose={() => setIsScannerOpen(false)} 
+        onScan={handleScan} 
+      />
     </div>
   );
 }

@@ -39,11 +39,10 @@ export default function LoginPage() {
   };
 
   React.useEffect(() => {
-    if (user && step === 1) {
-      setStep(2);
-      send2FACode(user.email || "");
+    if (user) {
+      router.push("/");
     }
-  }, [user]);
+  }, [user, router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,9 +50,8 @@ export default function LoginPage() {
     setError("");
     
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      setStep(2);
-      await send2FACode(userCredential.user.email || email);
+      await signInWithEmailAndPassword(auth, email, password);
+      router.push("/");
     } catch (err: any) {
       setError("Identifiants incorrects. Veuillez réessayer.");
       console.log("Login error:", err.message);

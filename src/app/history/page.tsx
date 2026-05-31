@@ -15,13 +15,24 @@ import {
   Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { collection, onSnapshot, query, orderBy, deleteDoc, doc, writeBatch, increment } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, deleteDoc, doc, writeBatch, increment, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ReceiptModal from "@/components/ReceiptModal";
 
 export default function HistoryPage() {
   const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const toggleStatus = async (tx: any) => {
+    const currentStatus = tx.status === "unpaid" || tx.status === "Non payé" ? "unpaid" : "paid";
+    const newStatus = currentStatus === "paid" ? "unpaid" : "paid";
+    try {
+      await updateDoc(doc(db, "sales", tx.id), { status: newStatus });
+    } catch (error) {
+      console.error("Error updating status:", error);
+      alert("Impossible de modifier le statut.");
+    }
+  };
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTx, setSelectedTx] = useState<any>(null);
   const [dateFilter, setDateFilter] = useState("all");
@@ -108,7 +119,10 @@ export default function HistoryPage() {
     return true;
   });
 
-  const totalPeriodPV = filteredSales.reduce((sum, sale) => sum + Number(sale.totalPV || 0), 0);
+  const totalPeriodPV = filteredSales.reduce((sum, sale) => {
+    const isPaid = sale.status !== "unpaid" && sale.status !== "Non payé";
+    return sum + (isPaid ? Number(sale.totalPV || 0) : 0);
+  }, 0);
 
   return (
     <div className="space-y-6">
@@ -231,10 +245,22 @@ export default function HistoryPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="flex items-center text-xs font-bold text-emerald-500">
-                          <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
-                          Payé
-                        </span>
+                        <button
+                          onClick={() => toggleStatus(tx)}
+                          className={cn(
+                            "flex items-center text-xs font-bold px-2.5 py-1 rounded-full border transition-all cursor-pointer hover:scale-105 active:scale-95 shadow-sm",
+                            tx.status === "unpaid" || tx.status === "Non payé"
+                              ? "bg-rose-50 hover:bg-rose-100/75 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/50 text-rose-600 dark:text-rose-400"
+                              : "bg-emerald-50 hover:bg-emerald-100/75 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/50 text-emerald-600 dark:text-emerald-400"
+                          )}
+                          title="Cliquer pour changer le statut"
+                        >
+                          <span className={cn(
+                            "w-2 h-2 rounded-full mr-2",
+                            tx.status === "unpaid" || tx.status === "Non payé" ? "bg-rose-500 animate-pulse" : "bg-emerald-500"
+                          )}></span>
+                          {tx.status === "unpaid" || tx.status === "Non payé" ? "Non payé" : "Payé"}
+                        </button>
                       </td>
                       <td className="px-6 py-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end space-x-2">

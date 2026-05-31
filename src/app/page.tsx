@@ -108,18 +108,24 @@ export default function Dashboard() {
 
       if (!createdAtMs) return;
 
+      const isPaid = sale.status !== "unpaid" && sale.status !== "Non payé";
+
       // Période courante
       if (period === "all" || createdAtMs >= currentStart) {
-        revenue += Number(sale.totalAmount || 0);
-        pv += Number(sale.totalPV || 0);
-        count += 1;
+        if (isPaid) {
+          revenue += Number(sale.totalAmount || 0);
+          pv += Number(sale.totalPV || 0);
+          count += 1;
+        }
       }
 
       // Période précédente pour comparaison
       if (period !== "all" && createdAtMs >= prevStart && createdAtMs < prevEnd) {
-        prevRevenue += Number(sale.totalAmount || 0);
-        prevPv += Number(sale.totalPV || 0);
-        prevCount += 1;
+        if (isPaid) {
+          prevRevenue += Number(sale.totalAmount || 0);
+          prevPv += Number(sale.totalPV || 0);
+          prevCount += 1;
+        }
       }
     });
 

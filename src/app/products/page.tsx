@@ -311,7 +311,7 @@ export default function ProductsPage() {
                         <span className="font-semibold text-slate-900 dark:text-white">{product.name}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                         {product.category}
                       </span>
@@ -319,10 +319,10 @@ export default function ProductsPage() {
                     <td className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap text-sm">
                       {Number(product.price).toLocaleString()} FCFA
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className="font-bold text-brand-teal text-sm">{product.pv} PV</span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <span className={cn(
                         "font-semibold",
                         Number(product.stock) < 10 ? "text-rose-500" : "text-emerald-500"
@@ -330,13 +330,13 @@ export default function ProductsPage() {
                         {product.stock}
                       </span>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center text-slate-500">
                         <Barcode className="w-4 h-4 mr-2" />
                         {product.barcode || "N/A"}
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-4 text-right whitespace-nowrap">
                       <div className="flex items-center justify-end space-x-1">
                         <button 
                           onClick={() => setBarcodePrintProduct(product)}

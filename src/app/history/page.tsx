@@ -210,57 +210,59 @@ export default function HistoryPage() {
 
                   return (
                     <tr key={tx.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <p className="font-bold text-slate-900 dark:text-white truncate max-w-[120px]">{tx.id}</p>
                         <p className="text-xs text-slate-500">{dateStr} à {timeStr}</p>
                       </td>
-                      <td className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-300">
+                      <td className="px-6 py-4 font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                         {tx.customerName}
                         {tx.customerSN && <span className="block text-xs font-normal text-slate-500">SN: {tx.customerSN}</span>}
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <p className="text-sm font-medium text-slate-900 dark:text-white truncate max-w-[150px]">{type}</p>
                         <p className="text-xs text-brand-teal font-bold">{tx.totalPV} PV</p>
                       </td>
                       <td className="px-6 py-4 font-black text-slate-900 dark:text-white whitespace-nowrap">
                         {Number(tx.totalAmount).toLocaleString()} FCFA
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <span className="px-2 py-1 bg-slate-100 dark:bg-slate-800 rounded-md text-xs font-bold text-slate-600 dark:text-slate-400">
                           {translateMethod(tx.paymentMethod)}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <span className="flex items-center text-xs font-bold text-emerald-500">
                           <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></span>
                           Payé
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right space-x-2">
-                        <button 
-                          onClick={() => {
-                            setSelectedTx(tx);
-                            setTimeout(() => window.print(), 300);
-                          }}
-                          className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 hover:text-brand-teal transition-colors" 
-                          title="Imprimer"
-                        >
-                          <Printer className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => setSelectedTx(tx)}
-                          className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 hover:text-brand-teal transition-colors" 
-                          title="Voir reçu"
-                        >
-                          <FileText className="w-4 h-4" />
-                        </button>
-                        <button 
-                          onClick={() => handleDelete(tx)}
-                          className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors" 
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                      <td className="px-6 py-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end space-x-2">
+                          <button 
+                            onClick={() => {
+                              setSelectedTx(tx);
+                              setTimeout(() => window.print(), 300);
+                            }}
+                            className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 hover:text-brand-teal transition-colors" 
+                            title="Imprimer"
+                          >
+                            <Printer className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => setSelectedTx(tx)}
+                            className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg text-slate-600 hover:text-brand-teal transition-colors" 
+                            title="Voir reçu"
+                          >
+                            <FileText className="w-4 h-4" />
+                          </button>
+                          <button 
+                            onClick={() => handleDelete(tx)}
+                            className="p-2 bg-red-50 dark:bg-red-900/20 rounded-lg text-red-500 hover:text-red-600 hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors" 
+                            title="Supprimer"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

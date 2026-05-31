@@ -57,8 +57,13 @@ export default function ReceiptModal({ transaction, onClose }: ReceiptModalProps
 
         {/* Receipt Content */}
         <div className="p-6 print:p-2 text-center font-mono text-sm print:text-xs">
-          <h2 className="text-xl print:text-lg font-black uppercase mb-1">Longrich</h2>
-          <p className="text-slate-500 mb-4">Reçu de transaction</p>
+          <div className="flex flex-col items-center mb-4">
+            <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center overflow-hidden border border-slate-200 mb-2 print:border-slate-300">
+              <img src="/logo.jpg" alt="SEETLOXO LONGRICH Logo" className="w-full h-full object-contain" />
+            </div>
+            <h2 className="text-lg print:text-base font-black uppercase tracking-wider text-slate-900">SEETLOXO LONGRICH</h2>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">Reçu de transaction</p>
+          </div>
           
           <div className="text-left border-t border-b border-slate-200 border-dashed py-3 mb-4 space-y-1">
             <p><strong>ID :</strong> {transaction.id}</p>

@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import BarcodeScannerModal from "@/components/BarcodeScannerModal";
 import { collection, onSnapshot, writeBatch, doc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import ReceiptModal from "@/components/ReceiptModal";
 
 export default function SalesPage() {
   const [availableProducts, setAvailableProducts] = useState<any[]>([]);
@@ -39,6 +40,7 @@ export default function SalesPage() {
   const [scanClientName, setScanClientName] = useState("");
   const [scanClientSN, setScanClientSN] = useState("");
   const [scanPaymentMethod, setScanPaymentMethod] = useState("cash");
+  const [completedTransaction, setCompletedTransaction] = useState<any>(null);
 
   useEffect(() => {
     // Écouter les produits en temps réel
@@ -180,12 +182,31 @@ export default function SalesPage() {
 
       await batch.commit();
 
+      const newTransaction = {
+        id: salesRef.id,
+        customerName: customerName || "Client Comptoir",
+        customerSN: customerSN || null,
+        paymentMethod,
+        totalAmount,
+        totalPV,
+        items: cart.map(item => ({
+          productId: item.id,
+          name: item.name,
+          price: item.price,
+          pv: item.pv,
+          quantity: item.quantity
+        })),
+        createdAt: { seconds: Math.floor(Date.now() / 1000) }
+      };
+
       // Réinitialiser le panier et l'interface
       setCart([]);
       setCustomerName("");
       setCustomerSN("");
       setPaymentMethod("cash");
-      alert("Vente validée avec succès !");
+      
+      // Ouvrir automatiquement la modale de reçu pour impression immédiate
+      setCompletedTransaction(newTransaction);
 
     } catch (error) {
       console.error("Erreur lors de la validation de la vente:", error);
@@ -528,6 +549,14 @@ export default function SalesPage() {
         onClose={() => setIsScannerOpen(false)} 
         onScan={handleScan} 
       />
+
+      {/* Modale de reçu automatique pour impression immédiate */}
+      {completedTransaction && (
+        <ReceiptModal 
+          transaction={completedTransaction} 
+          onClose={() => setCompletedTransaction(null)} 
+        />
+      )}
     </div>
   );
 }

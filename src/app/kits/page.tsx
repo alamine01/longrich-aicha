@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { collection, serverTimestamp, getDocs, writeBatch, doc, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import ReceiptModal from "@/components/ReceiptModal";
 
 const normalizeName = (str: string) => {
   return str.toLowerCase()
@@ -178,6 +179,7 @@ export default function KitsPage() {
   const [customerSN, setCustomerSN] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [isSaving, setIsSaving] = useState(false);
+  const [completedTransaction, setCompletedTransaction] = useState<any>(null);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -267,15 +269,30 @@ export default function KitsPage() {
         createdAt: serverTimestamp()
       });
 
+      const newTransaction = {
+        id: saleRef.id,
+        customerName,
+        customerSN: customerSN || null,
+        paymentMethod,
+        totalAmount: selectedKit.price,
+        totalPV: selectedKit.pv,
+        kitName: `${selectedKit.name} (${option.name})`,
+        items: suppliedItems,
+        missingItems: missingItems,
+        createdAt: { seconds: Math.floor(Date.now() / 1000) }
+      };
+
       // Commit everything atomicaly
       await batch.commit();
 
-      alert(`Adhésion enregistrée avec succès pour le ${selectedKit.name} !`);
       setSelectedKit(null);
       setSelectedOptionIndex(0);
       setCustomerName("");
       setCustomerSN("");
       setPaymentMethod("cash");
+
+      // Ouvrir automatiquement la modale de reçu pour le kit
+      setCompletedTransaction(newTransaction);
     } catch (err) {
       console.error("Error saving kit sale:", err);
       alert("Une erreur est survenue lors de la validation.");
@@ -456,6 +473,14 @@ export default function KitsPage() {
             </div>
           </form>
         </div>
+      )}
+
+      {/* Modale de reçu automatique pour adhésion immédiate */}
+      {completedTransaction && (
+        <ReceiptModal 
+          transaction={completedTransaction} 
+          onClose={() => setCompletedTransaction(null)} 
+        />
       )}
     </div>
   );

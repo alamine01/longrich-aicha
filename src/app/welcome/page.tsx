@@ -490,88 +490,159 @@ export default function LandingPage() {
       </section>
 
       {/* 5. Opportunity / How it works */}
-      <section id="opportunite" className="py-20 bg-gradient-to-b from-slate-50 to-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+      <section id="opportunite" className="py-24 bg-gradient-to-b from-slate-50 to-white overflow-hidden relative">
+        {/* Decorative ambient background glows */}
+        <div className="absolute top-1/4 right-0 w-96 h-96 bg-brand-teal/5 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute bottom-1/4 left-0 w-96 h-96 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none"></div>
+        
+        <div className="max-w-7xl mx-auto px-6 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 items-center">
             
             {/* Left Graphics */}
-            <div className="lg:col-span-5 grid grid-cols-2 gap-4">
-              <div className="space-y-4">
-                <div className="bg-emerald-500 text-white p-6 rounded-2xl shadow-lg space-y-2 mt-8">
-                  <BookmarkCheck className="w-8 h-8" />
-                  <h4 className="font-black text-lg">Qualité de Produit</h4>
-                  <p className="text-xs text-white/80">Des produits bio-technologiques brevetés et reconnus mondialement.</p>
+            <div className="lg:col-span-5 grid grid-cols-2 gap-6 relative">
+              {/* Subtle background blur accent under the cards */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-tr from-brand-teal/10 to-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+              
+              <div className="space-y-6 relative z-10 mt-8">
+                {/* Card 1: Qualité de Produit */}
+                <div className="bg-white/80 backdrop-blur-md border border-slate-200/60 hover:border-emerald-250 p-6 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.01)] hover:shadow-[0_20px_40px_rgba(16,185,129,0.08)] transition-all duration-500 space-y-5 hover:-translate-y-2 group cursor-pointer relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-400 to-teal-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-500 shadow-inner">
+                    <BookmarkCheck className="w-7 h-7" />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-black text-slate-900 text-lg group-hover:text-emerald-600 transition-colors">Qualité de Produit</h4>
+                    <p className="text-xs text-slate-500 font-semibold leading-relaxed">Des produits bio-technologiques brevetés et reconnus mondialement pour leur efficacité.</p>
+                  </div>
                 </div>
-                <div className="bg-white border border-slate-200/60 p-6 rounded-2xl shadow-sm space-y-2">
-                  <TrendingUp className="w-8 h-8 text-brand-teal" />
-                  <h4 className="font-black text-lg text-slate-900">Revenus Hebdomadaires</h4>
-                  <p className="text-xs text-slate-500">Un plan de rémunération généreux basé sur les PV de votre réseau.</p>
+
+                {/* Card 2: Revenus Hebdomadaires */}
+                <div className="bg-white/80 backdrop-blur-md border border-slate-200/60 hover:border-brand-teal/30 p-6 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.01)] hover:shadow-[0_20px_40px_rgba(27,153,175,0.08)] transition-all duration-500 space-y-5 hover:-translate-y-2 group cursor-pointer relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand-teal to-cyan-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="w-14 h-14 bg-brand-teal/5 rounded-2xl flex items-center justify-center text-brand-teal group-hover:scale-110 group-hover:bg-brand-teal group-hover:text-white transition-all duration-500 shadow-inner">
+                    <TrendingUp className="w-7 h-7" />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-black text-slate-900 text-lg group-hover:text-brand-teal transition-colors">Revenus Hebdomadaires</h4>
+                    <p className="text-xs text-slate-500 font-semibold leading-relaxed">Un plan de rémunération généreux et transparent basé sur les PV de votre réseau de vente.</p>
+                  </div>
                 </div>
               </div>
-              <div className="space-y-4">
-                <div className="bg-white border border-slate-200/60 p-6 rounded-2xl shadow-sm space-y-2">
-                  <Star className="w-8 h-8 text-amber-500" />
-                  <h4 className="font-black text-lg text-slate-900">Voyages & Voitures</h4>
-                  <p className="text-xs text-slate-500">Des challenges réguliers pour remporter des voyages, voitures et bourses d'études.</p>
+
+              <div className="space-y-6 relative z-10">
+                {/* Card 3: Voyages & Voitures */}
+                <div className="bg-white/80 backdrop-blur-md border border-slate-200/60 hover:border-amber-300 p-6 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.01)] hover:shadow-[0_20px_40px_rgba(245,158,11,0.08)] transition-all duration-500 space-y-5 hover:-translate-y-2 group cursor-pointer relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="w-14 h-14 bg-amber-50 rounded-2xl flex items-center justify-center text-amber-500 group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition-all duration-500 shadow-inner">
+                    <Star className="w-7 h-7" />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-black text-slate-900 text-lg group-hover:text-amber-500 transition-colors">Voyages & Voitures</h4>
+                    <p className="text-xs text-slate-500 font-semibold leading-relaxed">Des challenges réguliers motivants pour remporter des voyages, voitures et bourses d'études.</p>
+                  </div>
                 </div>
-                <div className="bg-indigo-650 bg-indigo-650 bg-indigo-600 text-white p-6 rounded-2xl shadow-lg space-y-2">
-                  <Globe className="w-8 h-8" />
-                  <h4 className="font-black text-lg">Liberté Financière</h4>
-                  <p className="text-xs text-white/80">Travaillez à votre rythme et bâtissez votre propre entreprise.</p>
+
+                {/* Card 4: Liberté Financière */}
+                <div className="bg-white/80 backdrop-blur-md border border-slate-200/60 hover:border-indigo-300 p-6 sm:p-8 rounded-3xl shadow-[0_4px_20px_rgba(0,0,0,0.01)] hover:shadow-[0_20px_40px_rgba(99,102,241,0.08)] transition-all duration-500 space-y-5 hover:-translate-y-2 group cursor-pointer relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-indigo-500 to-purple-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 group-hover:scale-110 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500 shadow-inner">
+                    <Globe className="w-7 h-7" />
+                  </div>
+                  <div className="space-y-2">
+                    <h4 className="font-black text-slate-900 text-lg group-hover:text-indigo-600 transition-colors">Liberté Financière</h4>
+                    <p className="text-xs text-slate-500 font-semibold leading-relaxed">Travaillez à votre propre rythme, fixez vos objectifs et bâtissez votre entreprise pérenne.</p>
+                  </div>
                 </div>
               </div>
             </div>
 
             {/* Right content */}
-            <div className="lg:col-span-7 space-y-6">
-              <span className="inline-block text-xs font-black uppercase tracking-widest bg-brand-teal/10 text-brand-teal px-3 py-1 rounded-full">
-                Pourquoi nous rejoindre ?
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 leading-tight">
-                L'opportunité d'affaire Longrich
-              </h2>
-              <p className="text-slate-500 text-sm sm:text-base font-medium">
-                Longrich n'est pas seulement une marque de produits cosmétiques et de santé, c'est une véritable plateforme entrepreneuriale. En rejoignant Longrich, vous devenez partenaire d'un géant de la cosmétique mondiale présent dans plus de 180 pays.
-              </p>
+            <div className="lg:col-span-7 space-y-8">
+              <div className="space-y-4">
+                <div className="inline-flex items-center space-x-2 bg-brand-teal/10 text-brand-teal px-3 py-1.5 rounded-full border border-brand-teal/20">
+                  <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                  <span className="text-[10px] font-black uppercase tracking-widest">
+                    Pourquoi nous rejoindre ?
+                  </span>
+                </div>
+                <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black tracking-tight text-slate-900 leading-tight">
+                  L'opportunité d'affaire <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-teal via-emerald-600 to-indigo-600">Longrich</span>
+                </h2>
+                <p className="text-slate-500 text-sm sm:text-base font-medium leading-relaxed max-w-xl">
+                  Longrich n'est pas seulement une marque de produits cosmétiques et de santé, c'est une véritable plateforme entrepreneuriale de classe mondiale. En rejoignant notre réseau, vous devenez partenaire d'un géant présent dans plus de 180 pays avec des opportunités illimitées.
+                </p>
+              </div>
 
-              <div className="space-y-4 pt-4">
-                <div className="flex items-start space-x-4">
-                  <div className="w-8 h-8 rounded-full bg-brand-teal/10 text-brand-teal flex items-center justify-center font-bold text-sm flex-shrink-0">1</div>
-                  <div>
-                    <h5 className="font-black text-slate-900">Achetez un Kit de Démarrage</h5>
-                    <p className="text-xs text-slate-500">Choisissez l'un de nos kits d'adhésion pour recevoir vos produits et activer votre code partenaire unique.</p>
+              <div className="relative pl-8 space-y-10 border-l-2 border-slate-100 ml-4 pt-2">
+                {/* Glowing vertical indicator line overlay */}
+                <div className="absolute left-[-2px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-brand-teal via-emerald-500 to-indigo-500 rounded-full"></div>
+
+                {/* Step 1 */}
+                <div className="relative group/step cursor-pointer">
+                  {/* Outer pulse indicator */}
+                  <div className="absolute -left-[45px] top-0.5 w-[26px] h-[26px] rounded-full bg-white border-2 border-brand-teal flex items-center justify-center shadow-md transition-all duration-300 group-hover/step:scale-110 group-hover/step:border-brand-teal-dark group-hover/step:shadow-brand-teal/20">
+                    <div className="w-2.5 h-2.5 rounded-full bg-brand-teal animate-ping absolute"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-brand-teal"></div>
+                  </div>
+                  <div className="space-y-1 bg-slate-50/0 hover:bg-slate-50/80 p-4 -my-4 rounded-2xl transition-all duration-350">
+                    <h5 className="font-extrabold text-slate-900 text-base sm:text-lg group-hover/step:text-brand-teal transition-colors flex items-center">
+                      Achetez un Kit de Démarrage
+                      <ChevronRight className="w-4 h-4 ml-1.5 opacity-0 -translate-x-2 group-hover/step:opacity-100 group-hover/step:translate-x-0 transition-all duration-350 text-brand-teal" />
+                    </h5>
+                    <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
+                      Choisissez l'un de nos kits d'adhésion pour recevoir vos produits et activer votre code partenaire unique.
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-4">
-                  <div className="w-8 h-8 rounded-full bg-brand-teal/10 text-brand-teal flex items-center justify-center font-bold text-sm flex-shrink-0">2</div>
-                  <div>
-                    <h5 className="font-black text-slate-900">Consommez et Recommandez</h5>
-                    <p className="text-xs text-slate-500">Utilisez les produits au quotidien et partagez les bienfaits autour de vous.</p>
+                {/* Step 2 */}
+                <div className="relative group/step cursor-pointer">
+                  {/* Outer pulse indicator */}
+                  <div className="absolute -left-[45px] top-0.5 w-[26px] h-[26px] rounded-full bg-white border-2 border-emerald-500 flex items-center justify-center shadow-md transition-all duration-300 group-hover/step:scale-110 group-hover/step:border-emerald-600 group-hover/step:shadow-emerald-500/20">
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping absolute"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                  </div>
+                  <div className="space-y-1 bg-slate-50/0 hover:bg-slate-50/80 p-4 -my-4 rounded-2xl transition-all duration-350">
+                    <h5 className="font-extrabold text-slate-900 text-base sm:text-lg group-hover/step:text-emerald-600 transition-colors flex items-center">
+                      Consommez et Recommandez
+                      <ChevronRight className="w-4 h-4 ml-1.5 opacity-0 -translate-x-2 group-hover/step:opacity-100 group-hover/step:translate-x-0 transition-all duration-350 text-emerald-600" />
+                    </h5>
+                    <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
+                      Utilisez les produits au quotidien, constatez leur efficacité, et partagez les bienfaits avec vos proches.
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex items-start space-x-4">
-                  <div className="w-8 h-8 rounded-full bg-brand-teal/10 text-brand-teal flex items-center justify-center font-bold text-sm flex-shrink-0">3</div>
-                  <div>
-                    <h5 className="font-black text-slate-900">Développez votre Équipe</h5>
-                    <p className="text-xs text-slate-500">Parrainez de nouveaux partenaires et touchez des commissions sur l'ensemble du volume de vente de votre réseau.</p>
+                {/* Step 3 */}
+                <div className="relative group/step cursor-pointer">
+                  {/* Outer pulse indicator */}
+                  <div className="absolute -left-[45px] top-0.5 w-[26px] h-[26px] rounded-full bg-white border-2 border-indigo-500 flex items-center justify-center shadow-md transition-all duration-300 group-hover/step:scale-110 group-hover/step:border-indigo-600 group-hover/step:shadow-indigo-500/20">
+                    <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping absolute"></div>
+                    <div className="w-2.5 h-2.5 rounded-full bg-indigo-500"></div>
+                  </div>
+                  <div className="space-y-1 bg-slate-50/0 hover:bg-slate-50/80 p-4 -my-4 rounded-2xl transition-all duration-350">
+                    <h5 className="font-extrabold text-slate-900 text-base sm:text-lg group-hover/step:text-indigo-600 transition-colors flex items-center">
+                      Développez votre Équipe
+                      <ChevronRight className="w-4 h-4 ml-1.5 opacity-0 -translate-x-2 group-hover/step:opacity-100 group-hover/step:translate-x-0 transition-all duration-350 text-indigo-600" />
+                    </h5>
+                    <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed">
+                      Parrainez de nouveaux partenaires et touchez des commissions hebdomadaires sur l'ensemble des ventes de votre réseau.
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-6">
+              <div className="pt-4">
                 <a 
                   href="#contact"
-                  className="inline-flex items-center px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm transition-all hover:scale-[1.02] shadow-md shadow-slate-900/10"
+                  className="inline-flex items-center px-8 py-4.5 bg-gradient-to-r from-slate-900 to-slate-800 hover:from-brand-teal hover:to-brand-teal-dark text-white rounded-2xl font-black text-sm transition-all duration-300 hover:scale-[1.02] shadow-lg shadow-slate-900/10 hover:shadow-brand-teal/20 group cursor-pointer"
                 >
                   Contacter le Stockiste
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1.5 transition-transform" />
                 </a>
               </div>
 
             </div>
-
           </div>
         </div>
       </section>

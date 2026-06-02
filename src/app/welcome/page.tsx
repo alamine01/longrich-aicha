@@ -124,7 +124,7 @@ export default function LandingPage() {
               <img src="/logo.jpg" alt="Longrich Logo" className="w-full h-full object-contain" />
             </div>
             <span className="font-extrabold text-xl tracking-tight text-slate-900">
-              Longrich <span className="text-brand-teal">Aicha</span>
+              Longrich <span className="text-brand-teal">Seetloxo</span>
             </span>
           </div>
 
@@ -222,7 +222,7 @@ export default function LandingPage() {
                     <Globe className="w-10 h-10 animate-spin" style={{ animationDuration: '20s' }} />
                   </div>
                   <h3 className="font-black text-xl text-slate-900">Stockiste Longrich</h3>
-                  <p className="text-xs text-slate-400 font-bold uppercase mt-1">Plateforme Aicha</p>
+                  <p className="text-xs text-slate-400 font-bold uppercase mt-1">Plateforme Seetloxo</p>
                   <p className="text-sm text-slate-500 mt-4 font-medium max-w-[200px]">
                     Votre partenaire de confiance pour tous vos besoins en produits originaux Longrich.
                   </p>
@@ -604,7 +604,7 @@ export default function LandingPage() {
                   <div className="p-3 bg-slate-800 rounded-xl text-brand-teal"><Mail className="w-6 h-6" /></div>
                   <div>
                     <p className="text-xs text-slate-500 font-bold">EMAIL</p>
-                    <p className="font-bold text-white text-base">contact@longrich-aicha.com</p>
+                    <p className="font-bold text-white text-base">contact@longrich-seetloxo.com</p>
                   </div>
                 </div>
 
@@ -688,8 +688,8 @@ export default function LandingPage() {
       <footer className="bg-slate-950 text-slate-500 py-12 border-t border-slate-900 text-xs">
         <div className="max-w-7xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="text-center md:text-left space-y-2">
-            <p className="font-bold text-slate-400">Longrich Stockiste Aicha Sénégal</p>
-            <p>&copy; {new Date().getFullYear()} Longrich Aicha. Tous droits réservés. Bureau Stockiste Officiel.</p>
+            <p className="font-bold text-slate-400">Longrich Stockiste Seetloxo Sénégal</p>
+            <p>&copy; {new Date().getFullYear()} Longrich Seetloxo. Tous droits réservés. Bureau Stockiste Officiel.</p>
           </div>
 
           <div className="flex items-center space-x-6">

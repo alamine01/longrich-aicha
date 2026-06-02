@@ -529,59 +529,13 @@ export default function SalesPage() {
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">NIN (Identité)</label>
-                <input 
-                  type="text" 
-                  value={customerNIN}
-                  onChange={(e) => setCustomerNIN(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal text-sm"
-                  placeholder="Ex: 123456789"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Parrainage</label>
-                <input 
-                  type="text" 
-                  value={customerSponsor}
-                  onChange={(e) => setCustomerSponsor(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal text-sm"
-                  placeholder="Code Parrain"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Placement</label>
-                <input 
-                  type="text" 
-                  value={customerPlacement}
-                  onChange={(e) => setCustomerPlacement(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal text-sm"
-                  placeholder="Code Placement"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div>
                 <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Téléphone</label>
                 <input 
                   type="text" 
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal text-sm"
-                  placeholder="Numéro tel"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Adresse</label>
-                <input 
-                  type="text" 
-                  value={customerAddress}
-                  onChange={(e) => setCustomerAddress(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal text-sm"
-                  placeholder="Adresse domicile"
+                  placeholder="Ex: 77 123 45 67"
                 />
               </div>
             </div>

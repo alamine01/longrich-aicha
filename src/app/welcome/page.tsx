@@ -660,50 +660,50 @@ export default function LandingPage() {
       </section>
 
       {/* 6. Contact Section */}
-      <section id="contact" className="py-20 bg-slate-900 text-white">
+      <section id="contact" className="py-20 bg-white text-slate-800 border-t border-slate-100">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
             
             {/* Contact Details */}
             <div className="lg:col-span-5 space-y-6">
-              <span className="inline-block text-xs font-black uppercase tracking-widest bg-brand-teal/20 text-brand-teal px-3 py-1 rounded-full">
+              <span className="inline-block text-xs font-black uppercase tracking-widest bg-brand-teal/10 text-brand-teal px-3 py-1 rounded-full">
                 Nous Contacter
               </span>
-              <h2 className="text-3xl font-black text-white">Contactez Notre Bureau Stockiste</h2>
-              <p className="text-slate-400 text-sm font-medium">
+              <h2 className="text-3xl font-black text-slate-900">Contactez Notre Bureau Stockiste</h2>
+              <p className="text-slate-500 text-sm font-medium">
                 Vous souhaitez commander des produits, adhérer à un kit, ou obtenir des conseils personnalisés sur l'opportunité d'affaire Longrich ? Nous sommes disponibles pour vous aider.
               </p>
 
               <div className="space-y-4 pt-4">
                 <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-slate-800 rounded-xl text-brand-teal"><Phone className="w-6 h-6" /></div>
+                  <div className="p-3 bg-slate-50 rounded-xl text-brand-teal border border-slate-100"><Phone className="w-6 h-6" /></div>
                   <div>
-                    <p className="text-xs text-slate-500 font-bold">TÉLÉPHONE / WHATSAPP</p>
-                    <p className="font-bold text-white text-base">+221 77 000 00 00</p>
+                    <p className="text-xs text-slate-400 font-bold">TÉLÉPHONE / WHATSAPP</p>
+                    <p className="font-bold text-slate-900 text-base">+221 77 000 00 00</p>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-slate-800 rounded-xl text-brand-teal"><Mail className="w-6 h-6" /></div>
+                  <div className="p-3 bg-slate-50 rounded-xl text-brand-teal border border-slate-100"><Mail className="w-6 h-6" /></div>
                   <div>
-                    <p className="text-xs text-slate-500 font-bold">EMAIL</p>
-                    <p className="font-bold text-white text-base">contact@longrich-seetloxo.com</p>
+                    <p className="text-xs text-slate-400 font-bold">EMAIL</p>
+                    <p className="font-bold text-slate-900 text-base">contact@longrich-seetloxo.com</p>
                   </div>
                 </div>
 
                 <div className="flex items-center space-x-4">
-                  <div className="p-3 bg-slate-800 rounded-xl text-brand-teal"><MapPin className="w-6 h-6" /></div>
+                  <div className="p-3 bg-slate-50 rounded-xl text-brand-teal border border-slate-100"><MapPin className="w-6 h-6" /></div>
                   <div>
-                    <p className="text-xs text-slate-500 font-bold">ADRESSE DU BUREAU</p>
-                    <p className="font-bold text-white text-sm leading-relaxed">Dakar, Plateau, Rue de Thiong, Sénégal</p>
+                    <p className="text-xs text-slate-400 font-bold">ADRESSE DU BUREAU</p>
+                    <p className="font-bold text-slate-900 text-sm leading-relaxed">Dakar, Plateau, Rue de Thiong, Sénégal</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Quick Contact Form */}
-            <div className="lg:col-span-7 bg-slate-800/40 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6">
-              <h3 className="text-xl font-black text-white">Envoyez-nous un message</h3>
+            <div className="lg:col-span-7 bg-slate-50 border border-slate-200/80 rounded-3xl p-6 sm:p-8 space-y-6">
+              <h3 className="text-xl font-black text-slate-900">Envoyez-nous un message</h3>
               <form 
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -719,7 +719,7 @@ export default function LandingPage() {
                       type="text" 
                       required
                       placeholder="Ex: Fatou Sow"
-                      className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-teal text-sm text-white"
+                      className="w-full px-4 py-2.5 bg-white border border-slate-200 focus:border-brand-teal rounded-xl outline-none focus:ring-2 focus:ring-brand-teal/20 text-sm text-slate-800 transition-all"
                     />
                   </div>
                   <div className="space-y-1">
@@ -728,7 +728,7 @@ export default function LandingPage() {
                       type="tel" 
                       required
                       placeholder="Ex: +221 77 123 45 67"
-                      className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-teal text-sm text-white"
+                      className="w-full px-4 py-2.5 bg-white border border-slate-200 focus:border-brand-teal rounded-xl outline-none focus:ring-2 focus:ring-brand-teal/20 text-sm text-slate-800 transition-all"
                     />
                   </div>
                 </div>
@@ -736,7 +736,7 @@ export default function LandingPage() {
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-slate-400 uppercase">Sujet d'intérêt</label>
                   <select 
-                    className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-teal text-sm text-white font-medium"
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 focus:border-brand-teal rounded-xl outline-none focus:ring-2 focus:ring-brand-teal/20 text-sm text-slate-850 font-medium transition-all"
                   >
                     <option value="buy">Acheter des produits Longrich</option>
                     <option value="join">S'inscrire comme distributeur (Kits)</option>
@@ -750,13 +750,13 @@ export default function LandingPage() {
                     rows={4}
                     required
                     placeholder="Écrivez votre message ici..."
-                    className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-brand-teal text-sm text-white resize-none"
+                    className="w-full px-4 py-2.5 bg-white border border-slate-200 focus:border-brand-teal rounded-xl outline-none focus:ring-2 focus:ring-brand-teal/20 text-sm text-slate-800 resize-none transition-all"
                   ></textarea>
                 </div>
 
                 <button 
                   type="submit"
-                  className="w-full py-3 bg-brand-teal hover:bg-brand-teal-dark text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-colors shadow-lg shadow-brand-teal/20"
+                  className="w-full py-3.5 bg-brand-teal hover:bg-brand-teal-dark text-white font-bold rounded-xl text-xs uppercase tracking-wider transition-all shadow-lg shadow-brand-teal/15 hover:scale-[1.01]"
                 >
                   Envoyer ma demande par mail
                 </button>

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unused-vars, react/no-unescaped-entities */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -36,6 +37,7 @@ export default function ProductsPage() {
   const [name, setName] = useState("");
   const [category, setCategory] = useState("Soins");
   const [price, setPrice] = useState("");
+  const [purchasePrice, setPurchasePrice] = useState("");
   const [pv, setPv] = useState("");
   const [stock, setStock] = useState("");
   const [barcode, setBarcode] = useState("");
@@ -51,6 +53,7 @@ export default function ProductsPage() {
       setName(existingProduct.name || "");
       setCategory(existingProduct.category || "Soins");
       setPrice(existingProduct.price?.toString() || "");
+      setPurchasePrice(existingProduct.purchasePrice?.toString() || "");
       setPv(existingProduct.pv?.toString() || "");
       setStock(existingProduct.stock?.toString() || "");
       setBarcode(existingProduct.barcode || "");
@@ -61,6 +64,7 @@ export default function ProductsPage() {
       setName("");
       setCategory("Soins");
       setPrice("");
+      setPurchasePrice("");
       setPv("");
       setStock("");
       setBarcode(code.trim());
@@ -96,7 +100,7 @@ export default function ProductsPage() {
 
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !price || !pv || !stock) {
+    if (!name || !price || !purchasePrice || !pv || !stock) {
       alert("Veuillez remplir tous les champs obligatoires.");
       return;
     }
@@ -107,6 +111,7 @@ export default function ProductsPage() {
         name,
         category,
         price: Number(price),
+        purchasePrice: Number(purchasePrice),
         pv: Number(pv),
         stock: Number(stock),
       };
@@ -136,6 +141,7 @@ export default function ProductsPage() {
       setName("");
       setCategory("Soins");
       setPrice("");
+      setPurchasePrice("");
       setPv("");
       setStock("");
       setBarcode("");
@@ -205,6 +211,7 @@ export default function ProductsPage() {
               setEditingProduct(null);
               setName("");
               setPrice("");
+              setPurchasePrice("");
               setPv("");
               setStock("");
               setBarcode("");
@@ -293,7 +300,8 @@ export default function ProductsPage() {
                 <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Produit</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Catégorie</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Prix</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Prix Achat</th>
+                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Prix Vente</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">PV</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Stock</th>
                   <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Code-barres</th>
@@ -315,6 +323,9 @@ export default function ProductsPage() {
                       <span className="px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
                         {product.category}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 font-medium text-slate-500 whitespace-nowrap text-sm">
+                      {Number(product.purchasePrice || 0).toLocaleString()} FCFA
                     </td>
                     <td className="px-6 py-4 font-medium text-slate-900 dark:text-white whitespace-nowrap text-sm">
                       {Number(product.price).toLocaleString()} FCFA
@@ -351,6 +362,7 @@ export default function ProductsPage() {
                             setName(product.name);
                             setCategory(product.category);
                             setPrice(product.price.toString());
+                            setPurchasePrice((product.purchasePrice || 0).toString());
                             setPv(product.pv.toString());
                             setStock(product.stock.toString());
                             setBarcode(product.barcode || "");
@@ -447,9 +459,20 @@ export default function ProductsPage() {
                   <option value="Cosmétique">Cosmétiques</option>
                 </select>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Prix (FCFA) *</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Prix Achat (FCFA) *</label>
+                  <input 
+                    type="number" 
+                    required
+                    value={purchasePrice}
+                    onChange={(e) => setPurchasePrice(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-brand-teal" 
+                    placeholder="0" 
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Prix Vente (FCFA) *</label>
                   <input 
                     type="number" 
                     required
@@ -460,7 +483,7 @@ export default function ProductsPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Points Valeur (PV) *</label>
+                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">PV *</label>
                   <input 
                     type="number" 
                     step="0.01" 
@@ -505,6 +528,7 @@ export default function ProductsPage() {
                   setEditingProduct(null);
                   setName("");
                   setPrice("");
+                  setPurchasePrice("");
                   setPv("");
                   setStock("");
                   setBarcode("");

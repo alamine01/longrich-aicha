@@ -9,9 +9,9 @@ import {
   ShoppingCart, 
   Layers, 
   History, 
-  Settings,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ClipboardList
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,6 +20,7 @@ const menuItems = [
   { name: "Stock", href: "/products", icon: Package },
   { name: "Ventes", href: "/sales", icon: ShoppingCart },
   { name: "Kits Longrich", href: "/kits", icon: Layers },
+  { name: "Reliquats", href: "/reliquats", icon: ClipboardList },
   { name: "Historique", href: "/history", icon: History },
 ];
 
@@ -58,6 +59,7 @@ export default function Sidebar({
         {/* Logo Section */}
         <div className="h-20 flex items-center px-6 border-b border-slate-800">
           <div className="w-10 h-10 bg-white rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logo.jpg" alt="Longrich Logo" className="w-full h-full object-contain" />
           </div>
           <span className={cn("ml-3 font-bold text-lg text-white tracking-tight truncate", !expanded && "md:hidden")}>

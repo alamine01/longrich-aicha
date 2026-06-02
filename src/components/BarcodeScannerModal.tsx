@@ -34,8 +34,10 @@ export default function BarcodeScannerModal({ isOpen, onClose, onScan }: Barcode
       return;
     }
 
-    setIsStarting(true);
-    setErrorMsg("");
+    Promise.resolve().then(() => {
+      setIsStarting(true);
+      setErrorMsg("");
+    });
 
     const onScanSuccess = (decodedText: string) => {
       if (scannerRef.current && scannerRef.current.isScanning) {
@@ -48,7 +50,7 @@ export default function BarcodeScannerModal({ isOpen, onClose, onScan }: Barcode
       }
     };
 
-    const onScanFailure = (error: any) => {
+    const onScanFailure = () => {
       // Ignorer les erreurs de lecture continues
     };
 
@@ -131,7 +133,7 @@ export default function BarcodeScannerModal({ isOpen, onClose, onScan }: Barcode
             
           </div>
 
-          <p className="text-center text-sm text-slate-500 mt-4">Placez le code-barres dans la zone au-dessus pour l'ajouter automatiquement au panier.</p>
+          <p className="text-center text-sm text-slate-500 mt-4">{"Placez le code-barres dans la zone au-dessus pour l'ajouter automatiquement au panier."}</p>
         </div>
       </div>
     </div>

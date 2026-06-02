@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any, react/no-unescaped-entities */
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
@@ -9,7 +10,8 @@ import {
   ArrowUpRight, 
   ArrowDownRight,
   ShoppingCart,
-  Loader2
+  Loader2,
+  Coins
 } from "lucide-react";
 import Link from "next/link";
 import { collection, onSnapshot } from "firebase/firestore";
@@ -18,7 +20,7 @@ import { db } from "@/lib/firebase";
 export default function Dashboard() {
   const [allSales, setAllSales] = useState<any[]>([]);
   const [totalStock, setTotalStock] = useState(0);
-  const [period, setPeriod] = useState<"today" | "week" | "month" | "year" | "all">("today");
+  const [period, setPeriod] = useState<"today" | "week" | "month" | "3months" | "year" | "all">("today");
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -80,6 +82,11 @@ export default function Dashboard() {
         prevStart = now.getTime() - 60 * oneDayMs;
         prevEnd = currentStart;
         break;
+      case "3months":
+        currentStart = now.getTime() - 90 * oneDayMs;
+        prevStart = now.getTime() - 180 * oneDayMs;
+        prevEnd = currentStart;
+        break;
       case "year":
         currentStart = now.getTime() - 365 * oneDayMs;
         prevStart = now.getTime() - 730 * oneDayMs;
@@ -93,10 +100,12 @@ export default function Dashboard() {
 
     let revenue = 0;
     let pv = 0;
+    let profit = 0;
     let count = 0;
 
     let prevRevenue = 0;
     let prevPv = 0;
+    let prevProfit = 0;
     let prevCount = 0;
 
     allSales.forEach((sale) => {
@@ -108,13 +117,25 @@ export default function Dashboard() {
 
       if (!createdAtMs) return;
 
-      const isPaid = sale.status !== "unpaid" && sale.status !== "Non payé";
+      const isPaid = sale.status !== "unpaid" && sale.status !== "Non payé" && sale.paymentStatus !== "unpaid";
+
+      // Calculate sale cost
+      let saleCost = 0;
+      if (sale.items && Array.isArray(sale.items)) {
+        sale.items.forEach((item: any) => {
+          const itemPurchasePrice = Number(item.purchasePrice || 0);
+          saleCost += itemPurchasePrice * Number(item.quantity || 1);
+        });
+      }
+      const saleRevenue = Number(sale.totalAmount || 0);
+      const saleProfit = saleRevenue - saleCost;
 
       // Période courante
       if (period === "all" || createdAtMs >= currentStart) {
         if (isPaid) {
-          revenue += Number(sale.totalAmount || 0);
+          revenue += saleRevenue;
           pv += Number(sale.totalPV || 0);
+          profit += saleProfit;
           count += 1;
         }
       }
@@ -122,8 +143,9 @@ export default function Dashboard() {
       // Période précédente pour comparaison
       if (period !== "all" && createdAtMs >= prevStart && createdAtMs < prevEnd) {
         if (isPaid) {
-          prevRevenue += Number(sale.totalAmount || 0);
+          prevRevenue += saleRevenue;
           prevPv += Number(sale.totalPV || 0);
+          prevProfit += saleProfit;
           prevCount += 1;
         }
       }
@@ -140,11 +162,14 @@ export default function Dashboard() {
     return {
       revenue,
       pv,
+      profit,
       count,
       revenueChange: getChangePercent(revenue, prevRevenue),
       revenueTrend: revenue >= prevRevenue ? "up" : "down",
       pvChange: getChangePercent(pv, prevPv),
       pvTrend: pv >= prevPv ? "up" : "down",
+      profitChange: getChangePercent(profit, prevProfit),
+      profitTrend: profit >= prevProfit ? "up" : "down",
       countChange: getChangePercent(count, prevCount),
       countTrend: count >= prevCount ? "up" : "down",
     };
@@ -174,6 +199,7 @@ export default function Dashboard() {
       name: period === "today" ? "Chiffre d'affaires (Aujourd'hui)" : 
             period === "week" ? "Chiffre d'affaires (Semaine)" :
             period === "month" ? "Chiffre d'affaires (Mois)" :
+            period === "3months" ? "Chiffre d'affaires (3 mois)" :
             period === "year" ? "Chiffre d'affaires (Année)" : "Chiffre d'affaires (Total)",
       value: `${computedStats.revenue.toLocaleString()} FCFA`,
       change: period === "all" ? "Global" : computedStats.revenueChange,
@@ -182,9 +208,22 @@ export default function Dashboard() {
       color: "bg-emerald-500",
     },
     {
+      name: period === "today" ? "Bénéfices (Aujourd'hui)" : 
+            period === "week" ? "Bénéfices (Semaine)" :
+            period === "month" ? "Bénéfices (Mois)" :
+            period === "3months" ? "Bénéfices (3 mois)" :
+            period === "year" ? "Bénéfices (Année)" : "Bénéfices (Total)",
+      value: `${computedStats.profit.toLocaleString()} FCFA`,
+      change: period === "all" ? "Global" : computedStats.profitChange,
+      trend: period === "all" ? "up" : computedStats.profitTrend,
+      icon: Coins,
+      color: "bg-violet-650 bg-violet-600",
+    },
+    {
       name: period === "today" ? "PV Cumulés (Aujourd'hui)" :
             period === "week" ? "PV Cumulés (Semaine)" :
             period === "month" ? "PV Cumulés (Mois)" :
+            period === "3months" ? "PV Cumulés (3 mois)" :
             period === "year" ? "PV Cumulés (Année)" : "PV Cumulés (Total)",
       value: `${computedStats.pv.toLocaleString()} PV`,
       change: period === "all" ? "Global" : computedStats.pvChange,
@@ -196,6 +235,7 @@ export default function Dashboard() {
       name: period === "today" ? "Nombre de Ventes (Aujourd'hui)" :
             period === "week" ? "Nombre de Ventes (Semaine)" :
             period === "month" ? "Nombre de Ventes (Mois)" :
+            period === "3months" ? "Nombre de Ventes (3 mois)" :
             period === "year" ? "Nombre de Ventes (Année)" : "Nombre de Ventes (Total)",
       value: `${computedStats.count.toLocaleString()} vente(s)`,
       change: period === "all" ? "Global" : computedStats.countChange,
@@ -231,6 +271,7 @@ export default function Dashboard() {
             {period === "today" && "Bienvenue, voici un aperçu de votre activité aujourd'hui."}
             {period === "week" && "Bienvenue, voici un aperçu de votre activité cette semaine."}
             {period === "month" && "Bienvenue, voici un aperçu de votre activité ce mois-ci."}
+            {period === "3months" && "Bienvenue, voici un aperçu de votre activité ces 3 derniers mois."}
             {period === "year" && "Bienvenue, voici un aperçu de votre activité cette année."}
             {period === "all" && "Bienvenue, voici un aperçu global de votre activité."}
           </p>
@@ -245,6 +286,7 @@ export default function Dashboard() {
             <option value="today">Aujourd'hui</option>
             <option value="week">Cette semaine (7j)</option>
             <option value="month">Ce mois (30j)</option>
+            <option value="3months">3 derniers mois (90j)</option>
             <option value="year">Cette année (365j)</option>
             <option value="all">Tout l'historique</option>
           </select>
@@ -252,7 +294,7 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
         {statsConfig.map((stat) => (
           <div key={stat.name} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">

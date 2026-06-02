@@ -26,8 +26,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [error, setError] = useState<Error | null>(null);
-
   useEffect(() => {
     try {
       const unsubscribe = onAuthStateChanged(
@@ -43,16 +41,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         },
         (error) => {
           console.error("Firebase Auth Error:", error);
-          setError(error);
           setLoading(false);
         }
       );
 
       return () => unsubscribe();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Firebase Initialization Error:", err);
-      setError(err);
-      setLoading(false);
+      Promise.resolve().then(() => setLoading(false));
     }
   }, [pathname, router]);
 

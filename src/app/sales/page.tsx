@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { 
   Search, 
   ShoppingCart, 
@@ -18,37 +18,96 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import BarcodeScannerModal from "@/components/BarcodeScannerModal";
-import { collection, onSnapshot, writeBatch, doc, serverTimestamp } from "firebase/firestore";
+import { collection, onSnapshot, writeBatch, doc, serverTimestamp, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ReceiptModal from "@/components/ReceiptModal";
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  purchasePrice?: number;
+  pv: number;
+  stock: number;
+  barcode?: string;
+}
+
+interface TransactionItem {
+  productId: string;
+  name: string;
+  price: number;
+  purchasePrice?: number;
+  pv: number;
+  quantity: number;
+}
+
+interface Transaction {
+  id: string;
+  customerName?: string;
+  customerSN?: string | null;
+  paymentMethod: string;
+  totalAmount: number;
+  totalPV: number;
+  items?: TransactionItem[];
+  createdAt?: { seconds?: number } | string | Date | null;
+}
+
+interface Customer {
+  id: string;
+  name: string;
+  sn: string;
+  sponsorCode?: string;
+  placementCode?: string;
+  nin?: string;
+  address?: string;
+  phone?: string;
+  updatedAt?: { seconds?: number } | string | Date | null;
+}
+
+const getNowSeconds = () => Math.floor(Date.now() / 1000);
+
+const normalizeName = (str: string) => {
+  return str.toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+    .replace(/[^a-z0-9]/g, ""); 
+};
 
 export default function SalesPage() {
-  const [availableProducts, setAvailableProducts] = useState<any[]>([]);
+  const [availableProducts, setAvailableProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [cart, setCart] = useState<any[]>([]);
+  const [cart, setCart] = useState<(Product & { quantity: number })[]>([]);
   const [customerName, setCustomerName] = useState("");
   const [customerSN, setCustomerSN] = useState("");
+  const [customerSponsor, setCustomerSponsor] = useState("");
+  const [customerPlacement, setCustomerPlacement] = useState("");
+  const [customerNIN, setCustomerNIN] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [paymentStatus, setPaymentStatus] = useState<"paid" | "unpaid" | "partial">("paid");
+  const [paidAmountInput, setPaidAmountInput] = useState<string>("");
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   // New state for scan modal
   const [scanModalOpen, setScanModalOpen] = useState(false);
-  const [scannedProduct, setScannedProduct] = useState<any>(null);
+  const [scannedProduct, setScannedProduct] = useState<Product | null>(null);
   const [scanQuantity, setScanQuantity] = useState<number | "">(1);
   const [scanClientName, setScanClientName] = useState("");
   const [scanClientSN, setScanClientSN] = useState("");
   const [scanPaymentMethod, setScanPaymentMethod] = useState("cash");
-  const [completedTransaction, setCompletedTransaction] = useState<any>(null);
+  const [completedTransaction, setCompletedTransaction] = useState<Transaction | null>(null);
+
+  const [registeredCustomers, setRegisteredCustomers] = useState<Customer[]>([]);
+  const [showCustSuggestions, setShowCustSuggestions] = useState(false);
 
   useEffect(() => {
     // Écouter les produits en temps réel
-    const unsubscribe = onSnapshot(collection(db, "products"), (snapshot) => {
+    const unsubscribeProds = onSnapshot(collection(db, "products"), (snapshot) => {
       const prods = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
-      }));
+      })) as Product[];
       setAvailableProducts(prods);
       setLoading(false);
     }, (error) => {
@@ -56,14 +115,35 @@ export default function SalesPage() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    // Écouter les clients en temps réel
+    const unsubscribeCusts = onSnapshot(collection(db, "customers"), (snapshot) => {
+      const custs = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Customer[];
+      setRegisteredCustomers(custs);
+    });
+
+    return () => {
+      unsubscribeProds();
+      unsubscribeCusts();
+    };
   }, []);
+
+  const filteredSuggestions = (customerName.trim() === "" && customerSN.trim() === "")
+    ? []
+    : registeredCustomers.filter(c => 
+        (c.name && c.name.toLowerCase().includes(customerName.toLowerCase())) ||
+        (c.sn && c.sn.toLowerCase().includes(customerSN.toLowerCase()))
+      ).slice(0, 5);
   
   const handleScan = (code: string) => {
     try {
       const audio = new Audio('/beep.mp3');
-      audio.play().catch(e => console.log('Audio non supporté'));
-    } catch(e) {}
+      audio.play().catch(() => console.log('Audio non supporté'));
+    } catch {
+      // ignore
+    }
 
     const product = availableProducts.find(p => p.barcode === code);
     if (product) {
@@ -99,12 +179,12 @@ export default function SalesPage() {
   };
 
   const filteredProducts = availableProducts.filter(p => 
-    p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    normalizeName(p.name).includes(normalizeName(searchQuery)) || 
     (p.barcode && p.barcode.includes(searchQuery.trim()))
   );
 
   // Updated addToCart to accept quantity
-  const addToCart = (product: any, qty: number = 1) => {
+  const addToCart = (product: Product, qty: number = 1) => {
     if (product.stock < qty) {
       alert(`Stock insuffisant pour ${product.name}`);
       return;
@@ -145,6 +225,17 @@ export default function SalesPage() {
   const totalAmount = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const totalPV = cart.reduce((sum, item) => sum + (item.pv * item.quantity), 0);
 
+  const finalPaidAmount = useMemo(() => {
+    if (paymentStatus === "paid") return totalAmount;
+    if (paymentStatus === "unpaid") return 0;
+    const val = Number(paidAmountInput) || 0;
+    return Math.min(totalAmount, Math.max(0, val));
+  }, [paymentStatus, paidAmountInput, totalAmount]);
+
+  const finalRemainingAmount = useMemo(() => {
+    return Math.max(0, totalAmount - finalPaidAmount);
+  }, [totalAmount, finalPaidAmount]);
+
   const handleCheckout = async () => {
     if (cart.length === 0) return;
     setIsSaving(true);
@@ -157,13 +248,23 @@ export default function SalesPage() {
       batch.set(salesRef, {
         customerName: customerName || "Client Comptoir",
         customerSN: customerSN || null,
+        customerSponsor: customerSponsor || "",
+        customerPlacement: customerPlacement || "",
+        customerNIN: customerNIN || "",
+        customerAddress: customerAddress || "",
+        customerPhone: customerPhone || "",
         paymentMethod,
         totalAmount,
         totalPV,
+        paymentStatus,
+        status: paymentStatus,
+        paidAmount: finalPaidAmount,
+        remainingAmount: finalRemainingAmount,
         items: cart.map(item => ({
           productId: item.id,
           name: item.name,
           price: item.price,
+          purchasePrice: item.purchasePrice || 0,
           pv: item.pv,
           quantity: item.quantity
         })),
@@ -180,30 +281,63 @@ export default function SalesPage() {
         }
       });
 
+      // Sauvegarder automatiquement le membre s'il a un SN
+      if (customerSN && customerSN.trim() !== "") {
+        const customerRef = doc(db, "customers", customerSN.trim());
+        batch.set(customerRef, {
+          name: customerName || "Client Comptoir",
+          sn: customerSN.trim(),
+          sponsorCode: customerSponsor || "",
+          placementCode: customerPlacement || "",
+          nin: customerNIN || "",
+          address: customerAddress || "",
+          phone: customerPhone || "",
+          updatedAt: serverTimestamp(),
+          totalPV: increment(totalPV)
+        }, { merge: true });
+      }
+
       await batch.commit();
 
       const newTransaction = {
         id: salesRef.id,
         customerName: customerName || "Client Comptoir",
         customerSN: customerSN || null,
+        customerSponsor: customerSponsor || "",
+        customerPlacement: customerPlacement || "",
+        customerNIN: customerNIN || "",
+        customerAddress: customerAddress || "",
+        customerPhone: customerPhone || "",
         paymentMethod,
         totalAmount,
         totalPV,
+        paymentStatus,
+        status: paymentStatus,
+        paidAmount: finalPaidAmount,
+        remainingAmount: finalRemainingAmount,
         items: cart.map(item => ({
           productId: item.id,
           name: item.name,
           price: item.price,
+          purchasePrice: item.purchasePrice || 0,
           pv: item.pv,
           quantity: item.quantity
         })),
-        createdAt: { seconds: Math.floor(Date.now() / 1000) }
+        createdAt: { seconds: getNowSeconds() }
       };
 
       // Réinitialiser le panier et l'interface
       setCart([]);
       setCustomerName("");
       setCustomerSN("");
+      setCustomerSponsor("");
+      setCustomerPlacement("");
+      setCustomerNIN("");
+      setCustomerAddress("");
+      setCustomerPhone("");
       setPaymentMethod("cash");
+      setPaymentStatus("paid");
+      setPaidAmountInput("");
       
       // Ouvrir automatiquement la modale de reçu pour impression immédiate
       setCompletedTransaction(newTransaction);
@@ -361,27 +495,121 @@ export default function SalesPage() {
             <User className="w-5 h-5 mr-2 text-brand-teal" />
             Client
           </h2>
-          <div className="space-y-4">
+          <div className="space-y-4 relative">
             <div>
               <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Nom Complet</label>
               <input 
                 type="text" 
                 value={customerName}
-                onChange={(e) => setCustomerName(e.target.value)}
+                onChange={(e) => {
+                  setCustomerName(e.target.value);
+                  setShowCustSuggestions(true);
+                }}
+                onFocus={() => setShowCustSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowCustSuggestions(false), 200)}
                 className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal"
                 placeholder="Ex: Jean Dupont"
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-500 uppercase mb-1">SN Longrich (ID)</label>
-              <input 
-                type="text" 
-                value={customerSN}
-                onChange={(e) => setCustomerSN(e.target.value)}
-                className="w-full px-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal"
-                placeholder="Ex: CI01234567"
-              />
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">SN Longrich (ID)</label>
+                <input 
+                  type="text" 
+                  value={customerSN}
+                  onChange={(e) => {
+                    setCustomerSN(e.target.value);
+                    setShowCustSuggestions(true);
+                  }}
+                  onFocus={() => setShowCustSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowCustSuggestions(false), 200)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal text-sm"
+                  placeholder="Ex: CI01234567"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">NIN (Identité)</label>
+                <input 
+                  type="text" 
+                  value={customerNIN}
+                  onChange={(e) => setCustomerNIN(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal text-sm"
+                  placeholder="Ex: 123456789"
+                />
+              </div>
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Parrainage</label>
+                <input 
+                  type="text" 
+                  value={customerSponsor}
+                  onChange={(e) => setCustomerSponsor(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal text-sm"
+                  placeholder="Code Parrain"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Placement</label>
+                <input 
+                  type="text" 
+                  value={customerPlacement}
+                  onChange={(e) => setCustomerPlacement(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal text-sm"
+                  placeholder="Code Placement"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Téléphone</label>
+                <input 
+                  type="text" 
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal text-sm"
+                  placeholder="Numéro tel"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Adresse</label>
+                <input 
+                  type="text" 
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal text-sm"
+                  placeholder="Adresse domicile"
+                />
+              </div>
+            </div>
+
+            {showCustSuggestions && filteredSuggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-50 max-h-60 overflow-y-auto py-1 divide-y divide-slate-100 dark:divide-slate-800 animate-in fade-in slide-in-from-top-2">
+                {filteredSuggestions.map((cust) => (
+                  <button
+                    key={cust.id}
+                    type="button"
+                    onClick={() => {
+                      setCustomerName(cust.name);
+                      setCustomerSN(cust.sn);
+                      setCustomerSponsor(cust.sponsorCode || "");
+                      setCustomerPlacement(cust.placementCode || "");
+                      setCustomerNIN(cust.nin || "");
+                      setCustomerAddress(cust.address || "");
+                      setCustomerPhone(cust.phone || "");
+                      setShowCustSuggestions(false);
+                    }}
+                    className="w-full text-left px-4 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-800 text-sm font-medium transition-colors cursor-pointer"
+                  >
+                    <p className="font-bold text-slate-900 dark:text-white">{cust.name}</p>
+                    <p className="text-xs text-brand-teal font-semibold">{cust.sn}</p>
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         </div>
 
@@ -412,6 +640,48 @@ export default function SalesPage() {
             ))}
           </div>
 
+          {/* Statut du Règlement */}
+          <div className="space-y-3 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+            <label className="block text-xs font-bold text-slate-500 uppercase">Statut de Règlement</label>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { id: "paid", label: "Payé", color: "border-emerald-500 text-emerald-500 dark:text-emerald-400" },
+                { id: "partial", label: "Avance", color: "border-amber-500 text-amber-500 dark:text-amber-400" },
+                { id: "unpaid", label: "Pas Payé", color: "border-rose-500 text-rose-500 dark:text-rose-400" }
+              ].map((status) => (
+                <button
+                  key={status.id}
+                  type="button"
+                  onClick={() => {
+                    setPaymentStatus(status.id as "paid" | "unpaid" | "partial");
+                    if (status.id !== "partial") setPaidAmountInput("");
+                  }}
+                  className={cn(
+                    "py-2 px-3 rounded-lg border text-xs font-bold text-center transition-all cursor-pointer",
+                    paymentStatus === status.id
+                      ? cn("bg-slate-900 text-white dark:bg-white dark:text-slate-900 font-extrabold shadow-sm", status.color)
+                      : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100"
+                  )}
+                >
+                  {status.label}
+                </button>
+              ))}
+            </div>
+
+            {paymentStatus === "partial" && (
+              <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="block text-[10px] font-bold text-slate-500 uppercase">Montant Avancé (FCFA)</label>
+                <input
+                  type="number"
+                  value={paidAmountInput}
+                  onChange={(e) => setPaidAmountInput(e.target.value)}
+                  placeholder="Ex: 5000"
+                  className="w-full px-3 py-1.5 text-xs bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal text-slate-900 dark:text-white"
+                />
+              </div>
+            )}
+          </div>
+
           <div className="mt-8 space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800">
             <div className="flex justify-between items-center text-slate-500">
               <span className="font-medium text-sm">Total PV</span>
@@ -421,6 +691,12 @@ export default function SalesPage() {
               <span className="font-bold text-slate-900 dark:text-white">Net à payer</span>
               <span className="font-black text-xl text-slate-900 dark:text-white whitespace-nowrap">{totalAmount.toLocaleString()} FCFA</span>
             </div>
+            {finalRemainingAmount > 0 && (
+              <div className="flex justify-between items-center text-rose-500 font-bold text-xs py-1.5 px-2.5 bg-rose-50 dark:bg-rose-950/20 rounded-lg">
+                <span>Reste à payer (Dette)</span>
+                <span>{finalRemainingAmount.toLocaleString()} FCFA</span>
+              </div>
+            )}
             <button 
               disabled={cart.length === 0 || isSaving}
               onClick={handleCheckout}

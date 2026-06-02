@@ -1,6 +1,6 @@
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
-import { getAuth } from "firebase/auth";
+import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
+import { getFirestore, Firestore } from "firebase/firestore";
+import { getAuth, Auth } from "firebase/auth";
 
 // Configuration Firebase (À remplacer par vos clés réelles)
 const firebaseConfig = {
@@ -13,9 +13,9 @@ const firebaseConfig = {
 };
 
 // Initialisation sécurisée (évite les crashs Vercel lors du build si les variables manquent temporairement)
-let app;
-let db: any;
-let auth: any;
+let app: FirebaseApp | undefined;
+let db: Firestore = undefined as unknown as Firestore;
+let auth: Auth = undefined as unknown as Auth;
 
 if (typeof window !== "undefined" && !getApps().length) {
   // Client-side initialization

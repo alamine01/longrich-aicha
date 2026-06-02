@@ -34,8 +34,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setUser(user);
           setLoading(false);
           
-          // If not logged in, redirect to login
-          if (!user && pathname !== "/login") {
+          // If not logged in, redirect to login unless it is a public page (login or welcome)
+          const isPublicPage = pathname === "/login" || pathname === "/welcome";
+          if (!user && !isPublicPage) {
             router.push("/login");
           }
         },

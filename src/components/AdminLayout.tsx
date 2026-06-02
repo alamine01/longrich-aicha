@@ -15,6 +15,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const { user, loading, isTwoFactorVerified } = useAuth();
 
   const isLoginPage = pathname === "/login";
+  const isWelcomePage = pathname === "/welcome";
 
   if (loading) {
     return (
@@ -24,8 +25,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     );
   }
 
-  // If on login page, just show children (the login form)
-  if (isLoginPage) {
+  // If on login page or welcome page, just show children (no sidebar, no header)
+  if (isLoginPage || isWelcomePage) {
     return <>{children}</>;
   }
 

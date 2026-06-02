@@ -269,14 +269,14 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="flex flex-wrap justify-center gap-8">
             {kits.map((kit) => {
               const isBest = kit.name === "Kit Gold" || kit.name === "Kit Platinum VIP";
               return (
                 <div 
                   key={kit.name}
                   className={cn(
-                    "bg-slate-850 bg-slate-800/30 backdrop-blur-md rounded-3xl border transition-all duration-300 flex flex-col h-full relative overflow-hidden group hover:-translate-y-2",
+                    "w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1.5rem)] max-w-sm bg-slate-850 bg-slate-800/30 backdrop-blur-md rounded-3xl border transition-all duration-300 flex flex-col relative overflow-hidden group hover:-translate-y-2",
                     isBest 
                       ? "border-brand-teal shadow-[0_15px_30px_rgba(27,153,175,0.15)] bg-slate-800/40" 
                       : "border-slate-800 hover:border-slate-700 hover:shadow-[0_15px_30px_rgba(0,0,0,0.3)]"

@@ -270,53 +270,99 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {kits.map((kit) => (
-              <div 
-                key={kit.name}
-                className="bg-slate-800/50 rounded-2xl border border-slate-700 hover:border-brand-teal transition-all group overflow-hidden flex flex-col h-full shadow-2xl hover:shadow-brand-teal/10"
-              >
-                {/* Header */}
-                <div className={cn("p-6 text-white bg-gradient-to-r relative", kit.color)}>
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="p-2.5 bg-white/20 rounded-xl backdrop-blur-md">
-                      <kit.icon className="w-6 h-6" />
+            {kits.map((kit) => {
+              const isBest = kit.name === "Kit Gold" || kit.name === "Kit Platinum VIP";
+              return (
+                <div 
+                  key={kit.name}
+                  className={cn(
+                    "bg-slate-850 bg-slate-800/30 backdrop-blur-md rounded-3xl border transition-all duration-300 flex flex-col h-full relative overflow-hidden group hover:-translate-y-2",
+                    isBest 
+                      ? "border-brand-teal shadow-[0_15px_30px_rgba(27,153,175,0.15)] bg-slate-800/40" 
+                      : "border-slate-800 hover:border-slate-700 hover:shadow-[0_15px_30px_rgba(0,0,0,0.3)]"
+                  )}
+                >
+                  {/* Glowing background blob */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-brand-teal/5 rounded-full blur-2xl group-hover:bg-brand-teal/10 transition-colors pointer-events-none"></div>
+                  
+                  {isBest && (
+                    <div className="absolute top-4 right-4 z-20">
+                      <span className="px-3 py-1 text-[9px] font-black tracking-widest bg-gradient-to-r from-brand-teal to-emerald-500 text-white rounded-full uppercase shadow-md flex items-center gap-1">
+                        <Sparkles className="w-2.5 h-2.5" /> Recommandé
+                      </span>
                     </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-white/25 px-2.5 py-1 rounded-full">
-                      {kit.pv} PV
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-black">{kit.name}</h3>
-                  <p className="text-white/80 text-xs font-medium mt-1">Niveau d'adhésion officiel</p>
-                </div>
+                  )}
 
-                {/* Body */}
-                <div className="p-6 flex-1 flex flex-col justify-between space-y-6">
-                  <div className="space-y-4">
-                    <div className="flex items-baseline space-x-1.5">
-                      <span className="text-3xl font-black text-white">{kit.price.toLocaleString()}</span>
-                      <span className="text-slate-400 font-bold text-sm">FCFA</span>
+                  <div className="p-8 flex-1 flex flex-col justify-between space-y-8 relative z-10">
+                    <div className="space-y-6">
+                      {/* Icon & PV tag */}
+                      <div className="flex items-center justify-between">
+                        <div className={cn(
+                          "w-12 h-12 rounded-2xl flex items-center justify-center text-white bg-gradient-to-tr shadow-lg transition-transform duration-300 group-hover:scale-110",
+                          kit.color
+                        )}>
+                          <kit.icon className="w-6 h-6" />
+                        </div>
+                        <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider text-brand-teal bg-brand-teal/10 border border-brand-teal/20">
+                          {kit.pv} PV
+                        </span>
+                      </div>
+
+                      {/* Header */}
+                      <div>
+                        <h3 className="text-2xl font-black text-white group-hover:text-brand-teal transition-colors tracking-tight">
+                          {kit.name}
+                        </h3>
+                        <p className="text-xs text-slate-400 font-bold uppercase tracking-wider mt-1">
+                          Niveau d'adhésion
+                        </p>
+                      </div>
+
+                      {/* Price */}
+                      <div className="flex items-baseline space-x-2 py-2 border-y border-slate-800/60">
+                        <span className="text-3xl sm:text-4xl font-black tracking-tight text-white group-hover:text-brand-teal transition-colors">
+                          {kit.price.toLocaleString()}
+                        </span>
+                        <span className="text-slate-400 font-bold text-sm">FCFA</span>
+                      </div>
+
+                      {/* Description */}
+                      <p className="text-slate-400 text-xs sm:text-sm font-medium leading-relaxed">
+                        {kit.description}
+                      </p>
+
+                      {/* Benefits */}
+                      <ul className="space-y-3 pt-2">
+                        {kit.benefits.map((benefit, i) => (
+                          <li key={i} className="flex items-start text-xs sm:text-sm text-slate-300 font-medium">
+                            <span className="w-5 h-5 rounded-full bg-brand-teal/10 border border-brand-teal/20 flex items-center justify-center mr-2.5 flex-shrink-0 text-brand-teal mt-0.5">
+                              <Check className="w-3.5 h-3.5" />
+                            </span>
+                            <span className="leading-tight">{benefit}</span>
+                          </li>
+                        ))}
+                      </ul>
                     </div>
-                    <p className="text-slate-400 text-xs font-medium leading-relaxed">{kit.description}</p>
-                    
-                    <ul className="space-y-2 pt-4 border-t border-slate-700/60">
-                      {kit.benefits.map((benefit, i) => (
-                        <li key={i} className="flex items-center text-xs text-slate-350">
-                          <Check className="w-4 h-4 mr-2 text-brand-teal flex-shrink-0" />
-                          <span>{benefit}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
 
-                  <a 
-                    href="#contact"
-                    className="w-full py-3 bg-slate-700 hover:bg-brand-teal text-white font-bold rounded-xl text-xs text-center transition-colors block uppercase tracking-wider"
-                  >
-                    Demander ce Kit
-                  </a>
+                    {/* CTA Button */}
+                    <a 
+                      href={`https://wa.me/221770000000?text=Bonjour,%20je%20souhaite%20en%20savoir%20plus%20sur%20le%20Distributeur%20${encodeURIComponent(kit.name)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={cn(
+                        "w-full py-4 rounded-2xl text-xs font-black text-center uppercase tracking-widest transition-all duration-300 shadow-md flex items-center justify-center gap-1.5 hover:scale-[1.02] cursor-pointer",
+                        isBest
+                          ? "bg-brand-teal text-white hover:bg-brand-teal-dark shadow-brand-teal/20"
+                          : "bg-slate-800 text-slate-200 hover:bg-slate-700 hover:text-white border border-slate-700/50"
+                      )}
+                    >
+                      Choisir ce Kit
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>

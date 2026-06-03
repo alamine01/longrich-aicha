@@ -16,7 +16,7 @@ import {
   Trash2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { collection, onSnapshot, query, orderBy, deleteDoc, doc, writeBatch, increment, updateDoc } from "firebase/firestore";
+import { collection, onSnapshot, query, orderBy, deleteDoc, doc, writeBatch, increment, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ReceiptModal from "@/components/ReceiptModal";
 
@@ -61,14 +61,25 @@ export default function HistoryPage() {
     try {
       const batch = writeBatch(db);
       
-      // Restaurer le stock si demandé (on assume oui pour l'instant)
+      // Restaurer le stock si demandé
       if (tx.items && tx.items.length > 0) {
-        tx.items.forEach((item: any) => {
+        const checkPromises = tx.items.map(async (item: any) => {
           if (item.productId && !item.productId.startsWith("kit_")) {
             const productRef = doc(db, "products", item.productId);
-            batch.update(productRef, { stock: increment(item.quantity) });
+            try {
+              const snap = await getDoc(productRef);
+              if (snap.exists()) {
+                batch.update(productRef, { stock: increment(item.quantity) });
+              } else {
+                console.warn(`Product ${item.productId} not found in database. Skipping stock restore.`);
+              }
+            } catch (err) {
+              console.error(`Error checking product ${item.productId}:`, err);
+            }
           }
         });
+        
+        await Promise.all(checkPromises);
       }
       
       // Supprimer la vente

@@ -138,6 +138,42 @@ export default function ReliquatsPage() {
     }
   };
 
+  // Supprimer tout le reliquat (vider la liste des articles manquants)
+  const handleDeleteEntireReliquat = async (transactionId: string) => {
+    const tx = sales.find(s => s.id === transactionId);
+    if (!tx) return;
+    if (!confirm(`Voulez-vous vraiment supprimer tout le reliquat de "${tx.customerName || "Client"}" ?`)) return;
+
+    try {
+      const docRef = doc(db, "sales", transactionId);
+      await updateDoc(docRef, {
+        missingItems: []
+      });
+    } catch (error) {
+      console.error("Error deleting entire reliquat:", error);
+      alert("Une erreur est survenue lors de la suppression du reliquat.");
+    }
+  };
+
+  // Supprimer un article spécifique du reliquat
+  const handleDeleteReliquatItem = async (transactionId: string, itemIndex: number) => {
+    const tx = sales.find(s => s.id === transactionId);
+    if (!tx || !tx.missingItems) return;
+    const itemName = tx.missingItems[itemIndex].name;
+    if (!confirm(`Voulez-vous vraiment retirer "${itemName}" de la liste des reliquats ?`)) return;
+
+    try {
+      const docRef = doc(db, "sales", transactionId);
+      const updatedMissingItems = tx.missingItems.filter((_, idx) => idx !== itemIndex);
+      await updateDoc(docRef, {
+        missingItems: updatedMissingItems
+      });
+    } catch (error) {
+      console.error("Error deleting reliquat item:", error);
+      alert("Une erreur est survenue lors de la suppression de l'article.");
+    }
+  };
+
   // Enregistrer un versement sur une dette restante
   const handleRecordPayment = async (transactionId: string) => {
     const tx = sales.find(s => s.id === transactionId);
@@ -381,14 +417,24 @@ export default function ReliquatsPage() {
                           <div className="text-right flex-shrink-0 text-xs text-slate-500 flex flex-col items-end">
                             <p className="font-mono font-bold truncate max-w-[100px]">{tx.id}</p>
                             <p className="flex items-center mt-1"><Calendar className="w-3 h-3 mr-1" /> {dateStr}</p>
-                            <button
-                              onClick={() => setSelectedTx(tx)}
-                              className="mt-2 flex items-center px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-brand-teal dark:hover:bg-brand-teal hover:text-white dark:hover:text-white text-slate-600 dark:text-slate-300 rounded-md text-[10px] font-bold transition-all cursor-pointer hover:scale-105"
-                              title="Réimprimer le ticket de caisse"
-                            >
-                              <Printer className="w-3 h-3 mr-1" />
-                              Réimprimer
-                            </button>
+                            <div className="flex space-x-1.5 mt-2 justify-end">
+                              <button
+                                onClick={() => setSelectedTx(tx)}
+                                className="flex items-center px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-brand-teal dark:hover:bg-brand-teal hover:text-white dark:hover:text-white text-slate-600 dark:text-slate-300 rounded-md text-[10px] font-bold transition-all cursor-pointer hover:scale-105"
+                                title="Réimprimer le ticket de caisse"
+                              >
+                                <Printer className="w-3 h-3 mr-1" />
+                                Réimprimer
+                              </button>
+                              <button
+                                onClick={() => handleDeleteEntireReliquat(tx.id)}
+                                className="flex items-center px-2 py-1 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white text-rose-600 dark:text-rose-400 rounded-md text-[10px] font-bold transition-all cursor-pointer hover:scale-105"
+                                title="Supprimer tout le reliquat"
+                              >
+                                <Trash2 className="w-3 h-3 mr-1" />
+                                Supprimer
+                              </button>
+                            </div>
                           </div>
                         </div>
 
@@ -414,18 +460,27 @@ export default function ReliquatsPage() {
                                     <td className="p-3 font-semibold text-slate-900 dark:text-white">{item.name}</td>
                                     <td className="p-3 font-bold text-center">{item.quantity}</td>
                                     <td className="p-3 text-right">
-                                      {item.status === "delivered" ? (
-                                        <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 rounded-md font-bold text-[10px]">
-                                          Livré
-                                        </span>
-                                      ) : (
+                                      <div className="flex items-center justify-end space-x-2">
+                                        {item.status === "delivered" ? (
+                                          <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 rounded-md font-bold text-[10px]">
+                                            Livré
+                                          </span>
+                                        ) : (
+                                          <button
+                                            onClick={() => handleDeliverItem(tx.id, idx)}
+                                            className="px-2.5 py-1 bg-brand-teal text-white hover:bg-brand-teal-dark rounded-md text-[10px] font-bold shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                                          >
+                                            Livrer
+                                          </button>
+                                        )}
                                         <button
-                                          onClick={() => handleDeliverItem(tx.id, idx)}
-                                          className="px-2.5 py-1 bg-brand-teal text-white hover:bg-brand-teal-dark rounded-md text-[10px] font-bold shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                                          onClick={() => handleDeleteReliquatItem(tx.id, idx)}
+                                          className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors"
+                                          title="Supprimer cet article"
                                         >
-                                          Livrer
+                                          <Trash2 className="w-3.5 h-3.5" />
                                         </button>
-                                      )}
+                                      </div>
                                     </td>
                                   </tr>
                                 ))}
@@ -471,14 +526,24 @@ export default function ReliquatsPage() {
                             <div className="text-right text-xs text-slate-500 flex flex-col items-end">
                               <p className="font-mono truncate max-w-[80px]">{tx.id}</p>
                               <p className="mt-0.5 flex items-center"><Calendar className="w-3 h-3 mr-1" /> {dateStr}</p>
-                              <button
-                                onClick={() => setSelectedTx(tx)}
-                                className="mt-1.5 flex items-center px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-brand-teal dark:hover:bg-brand-teal hover:text-white dark:hover:text-white text-slate-600 dark:text-slate-300 rounded text-[9px] font-bold transition-all cursor-pointer hover:scale-105"
-                                title="Réimprimer le ticket de caisse"
-                              >
-                                <Printer className="w-2.5 h-2.5 mr-1" />
-                                Réimprimer
-                              </button>
+                              <div className="flex space-x-1.5 mt-1.5 justify-end">
+                                <button
+                                  onClick={() => setSelectedTx(tx)}
+                                  className="flex items-center px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-brand-teal dark:hover:bg-brand-teal hover:text-white dark:hover:text-white text-slate-600 dark:text-slate-300 rounded text-[9px] font-bold transition-all cursor-pointer hover:scale-105"
+                                  title="Réimprimer le ticket de caisse"
+                                >
+                                  <Printer className="w-2.5 h-2.5 mr-1" />
+                                  Réimprimer
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteEntireReliquat(tx.id)}
+                                  className="flex items-center px-2 py-0.5 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white text-rose-600 dark:text-rose-400 rounded text-[9px] font-bold transition-all cursor-pointer hover:scale-105"
+                                  title="Supprimer tout le reliquat"
+                                >
+                                  <Trash2 className="w-2.5 h-2.5 mr-1" />
+                                  Supprimer
+                                </button>
+                              </div>
                             </div>
                           </div>
                           <div className="p-4 bg-white dark:bg-slate-900">

@@ -19,6 +19,7 @@ import { db } from "@/lib/firebase";
 
 export default function Dashboard() {
   const [allSales, setAllSales] = useState<any[]>([]);
+  const [allEcash, setAllEcash] = useState<any[]>([]);
   const [totalStock, setTotalStock] = useState(0);
   const [period, setPeriod] = useState<"today" | "week" | "month" | "3months" | "year" | "all">("today");
   const [loading, setLoading] = useState(true);
@@ -41,15 +42,27 @@ export default function Dashboard() {
         ...doc.data(),
       }));
       setAllSales(sales);
-      setLoading(false);
     }, (err) => {
       console.log("Sales loading error:", err);
+    });
+
+    // 3. Écouter toutes les transactions E-cash pour les bénéfices
+    const unsubscribeEcash = onSnapshot(collection(db, "ecash"), (snapshot) => {
+      const ecashItems = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setAllEcash(ecashItems);
+      setLoading(false);
+    }, (err) => {
+      console.log("Ecash loading error:", err);
       setLoading(false);
     });
 
     return () => {
       unsubscribeProducts();
       unsubscribeSales();
+      unsubscribeEcash();
     };
   }, []);
 
@@ -128,7 +141,25 @@ export default function Dashboard() {
         });
       }
       const saleRevenue = Number(sale.totalAmount || 0);
-      const saleProfit = saleRevenue - saleCost;
+
+      // Determine profit: fixed profit for kits, saleRevenue - saleCost for regular products
+      const getKitProfit = (kitName: string): number => {
+        const name = kitName.toLowerCase();
+        if (name.includes("depuis")) {
+          const parts = name.split("depuis");
+          const startingPart = parts[1] || "";
+          if (startingPart.includes("q-silver") || startingPart.includes("q silver")) {
+            return 5000;
+          }
+          return 10000;
+        }
+        if (name.includes("q-silver") || name.includes("q silver")) {
+          return 5000;
+        }
+        return 10000;
+      };
+
+      const saleProfit = sale.kitName ? getKitProfit(sale.kitName) : saleRevenue - saleCost;
 
       // Période courante
       if (period === "all" || createdAtMs >= currentStart) {
@@ -148,6 +179,28 @@ export default function Dashboard() {
           prevProfit += saleProfit;
           prevCount += 1;
         }
+      }
+    });
+
+    allEcash.forEach((item) => {
+      const createdAtMs = item.createdAt?.seconds
+        ? item.createdAt.seconds * 1000
+        : item.createdAt
+          ? new Date(item.createdAt).getTime()
+          : 0;
+
+      if (!createdAtMs) return;
+
+      const itemProfit = Number(item.profit || 0);
+
+      // Période courante
+      if (period === "all" || createdAtMs >= currentStart) {
+        profit += itemProfit;
+      }
+
+      // Période précédente pour comparaison
+      if (period !== "all" && createdAtMs >= prevStart && createdAtMs < prevEnd) {
+        prevProfit += itemProfit;
       }
     });
 
@@ -173,7 +226,7 @@ export default function Dashboard() {
       countChange: getChangePercent(count, prevCount),
       countTrend: count >= prevCount ? "up" : "down",
     };
-  }, [allSales, period]);
+  }, [allSales, allEcash, period]);
 
   // 4. Récupérer les 6 ventes les plus récentes
   const recentSales = useMemo(() => {
@@ -294,15 +347,15 @@ export default function Dashboard() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 sm:gap-6">
         {statsConfig.map((stat) => (
-          <div key={stat.name} className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
+          <div key={stat.name} className="bg-white dark:bg-slate-900 p-4 sm:p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-md transition-shadow">
             <div className="flex items-center justify-between">
-              <div className={cn("p-3 rounded-xl text-white", stat.color)}>
-                <stat.icon className="w-6 h-6" />
+              <div className={cn("p-2.5 sm:p-3 rounded-xl text-white", stat.color)}>
+                <stat.icon className="w-5.5 h-5.5 sm:w-6 sm:h-6" />
               </div>
               <div className={cn(
-                "flex items-center text-xs font-bold px-2 py-1 rounded-full",
+                "flex items-center text-[10px] sm:text-xs font-bold px-1.5 py-0.5 sm:px-2 sm:py-1 rounded-full",
                 stat.change === "Temps réel" || stat.change === "Global"
                   ? "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
                   : stat.trend === "up"
@@ -311,13 +364,13 @@ export default function Dashboard() {
               )}>
                 {stat.change}
                 {stat.change !== "Temps réel" && stat.change !== "Global" && (
-                  stat.trend === "up" ? <ArrowUpRight className="w-3.5 h-3.5 ml-0.5" /> : <ArrowDownRight className="w-3.5 h-3.5 ml-0.5" />
+                  stat.trend === "up" ? <ArrowUpRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 ml-0.5" /> : <ArrowDownRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 ml-0.5" />
                 )}
               </div>
             </div>
             <div className="mt-4">
-              <h3 className="text-slate-500 text-sm font-medium">{stat.name}</h3>
-              <p className="text-lg lg:text-xl font-bold text-slate-900 dark:text-white mt-1 whitespace-nowrap">
+              <h3 className="text-slate-500 text-xs sm:text-sm font-medium">{stat.name}</h3>
+              <p className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 dark:text-white mt-1 whitespace-nowrap">
                 {stat.value}
               </p>
             </div>

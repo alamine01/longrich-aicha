@@ -11,7 +11,8 @@ import {
   History, 
   ChevronLeft,
   ChevronRight,
-  ClipboardList
+  ClipboardList,
+  Wallet
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +23,7 @@ const menuItems = [
   { name: "Kits Longrich", href: "/kits", icon: Layers },
   { name: "Reliquats", href: "/reliquats", icon: ClipboardList },
   { name: "Historique", href: "/history", icon: History },
+  { name: "E-cash & Dépenses", href: "/ecash", icon: Wallet },
 ];
 
 export default function Sidebar({ 

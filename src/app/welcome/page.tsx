@@ -4,7 +4,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { 
   Sparkles, 
-  Layers, 
   Package, 
   Search, 
   Phone, 

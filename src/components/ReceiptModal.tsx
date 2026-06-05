@@ -28,6 +28,8 @@ interface Transaction {
   paymentStatus?: "paid" | "unpaid" | "partial";
   paidAmount?: number;
   remainingAmount?: number;
+  customerBirthDate?: string;
+  customerBirthPlace?: string;
 }
 
 interface ReceiptModalProps {
@@ -165,6 +167,20 @@ export default function ReceiptModal({ transaction, onClose }: ReceiptModalProps
             <p><strong>ID :</strong> {transaction.id}</p>
             <p><strong>Date :</strong> {dateStr} à {timeStr}</p>
             <p><strong>Client :</strong> {transaction.customerName || "Client Comptoir"}</p>
+            {transaction.customerBirthDate && (
+              <p>
+                <strong>Né(e) le :</strong> {(() => {
+                  try {
+                    const [year, month, day] = transaction.customerBirthDate.split("-");
+                    if (year && month && day) return `${day}/${month}/${year}`;
+                    return transaction.customerBirthDate;
+                  } catch {
+                    return transaction.customerBirthDate;
+                  }
+                })()}
+                {transaction.customerBirthPlace ? ` à ${transaction.customerBirthPlace}` : ""}
+              </p>
+            )}
             {transaction.customerSN && <p><strong>SN :</strong> {transaction.customerSN}</p>}
             <p><strong>Paiement :</strong> {translateMethod(transaction.paymentMethod)}</p>
           </div>

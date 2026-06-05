@@ -244,6 +244,8 @@ export default function KitsPage() {
   const [selectedOptionIndex, setSelectedOptionIndex] = useState(0);
   const [customerName, setCustomerName] = useState("");
   const [customerSN, setCustomerSN] = useState("");
+  const [customerBirthDate, setCustomerBirthDate] = useState("");
+  const [customerBirthPlace, setCustomerBirthPlace] = useState("");
   const [customerSponsor, setCustomerSponsor] = useState("");
   const [customerPlacement, setCustomerPlacement] = useState("");
   const [customerNIN, setCustomerNIN] = useState("");
@@ -477,7 +479,9 @@ export default function KitsPage() {
 
       batch.set(saleRef, {
         customerName,
-        customerSN: customerSN || null,
+        customerBirthDate: customerBirthDate || "",
+        customerBirthPlace: customerBirthPlace || "",
+        customerSN: null,
         customerSponsor: customerSponsor || "",
         customerPlacement: customerPlacement || "",
         customerNIN: customerNIN || "",
@@ -499,7 +503,9 @@ export default function KitsPage() {
       const newTransaction = {
         id: saleRef.id,
         customerName,
-        customerSN: customerSN || null,
+        customerBirthDate: customerBirthDate || "",
+        customerBirthPlace: customerBirthPlace || "",
+        customerSN: null,
         customerSponsor: customerSponsor || "",
         customerPlacement: customerPlacement || "",
         customerNIN: customerNIN || "",
@@ -541,6 +547,8 @@ export default function KitsPage() {
       setSelectedOptionIndex(0);
       setCustomerName("");
       setCustomerSN("");
+      setCustomerBirthDate("");
+      setCustomerBirthPlace("");
       setCustomerSponsor("");
       setCustomerPlacement("");
       setCustomerNIN("");
@@ -574,7 +582,7 @@ export default function KitsPage() {
         <p className="text-slate-500 mt-1">Sélectionnez un kit pour enregistrer une nouvelle adhésion.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
         {kits.map((kit) => (
           <div key={kit.name} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl transition-all group overflow-hidden flex flex-col">
             <div className={cn("p-6 text-white relative", kit.color)}>
@@ -614,8 +622,13 @@ export default function KitsPage() {
                 onClick={() => {
                   setSelectedKit(kit);
                   setSelectedOptionIndex(0);
+                  if (kit.name === "Kit Platinum" || kit.name === "Kit Platinum VIP") {
+                    setStartingKitName("Kit Q-Silver");
+                  } else {
+                    setStartingKitName("Aucun (Nouveau membre)");
+                  }
                 }}
-                className="mt-6 w-full py-4 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors flex items-center justify-center group/btn"
+                className="mt-6 w-full py-3 px-4 bg-slate-900 dark:bg-white dark:text-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 dark:hover:bg-slate-100 transition-colors flex items-center justify-center text-xs sm:text-sm group/btn"
               >
                 {"ENREGISTRER L'ADHÉSION"}
                 <ChevronRight className="w-5 h-5 ml-2 group-hover/btn:translate-x-1 transition-transform" />
@@ -693,12 +706,10 @@ export default function KitsPage() {
                           className="w-full px-3 py-1.5 text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 outline-none focus:ring-2 focus:ring-brand-teal font-medium text-slate-900 dark:text-white"
                         >
                           {startingKitsOptions
-                            .filter(opt => opt.price < selectedKit.price)
+                            .filter(opt => opt.price < selectedKit.price && opt.name !== "Aucun (Nouveau membre)")
                             .map(opt => (
                               <option key={opt.name} value={opt.name}>
-                                {opt.name === "Aucun (Nouveau membre)" 
-                                  ? "Aucun (Nouveau membre - Achat Complet)" 
-                                  : `${opt.name} (${opt.price.toLocaleString()} F | ${opt.pv} PV)`}
+                                {`${opt.name} (${opt.price.toLocaleString()} F | ${opt.pv} PV)`}
                               </option>
                             ))}
                         </select>
@@ -904,30 +915,37 @@ export default function KitsPage() {
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">SN Longrich (ID)</label>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Date de naissance *</label>
                     <input 
-                      type="text" 
-                      value={customerSN}
-                      onChange={(e) => {
-                        setCustomerSN(e.target.value);
-                        setShowCustSuggestions(true);
-                      }}
-                      onFocus={() => setShowCustSuggestions(true)}
-                      onBlur={() => setTimeout(() => setShowCustSuggestions(false), 200)}
-                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-brand-teal text-sm" 
-                      placeholder="Ex: SN12345678" 
+                      type="date" 
+                      required
+                      value={customerBirthDate}
+                      onChange={(e) => setCustomerBirthDate(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-brand-teal text-sm text-slate-900 dark:text-white" 
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">NIN (Identité)</label>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Lieu de naissance *</label>
                     <input 
                       type="text" 
-                      value={customerNIN}
-                      onChange={(e) => setCustomerNIN(e.target.value)}
+                      required
+                      value={customerBirthPlace}
+                      onChange={(e) => setCustomerBirthPlace(e.target.value)}
                       className="w-full px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-brand-teal text-sm" 
-                      placeholder="Ex: 123456789" 
+                      placeholder="Ex: Dakar" 
                     />
                   </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">NIN (Identité)</label>
+                  <input 
+                    type="text" 
+                    value={customerNIN}
+                    onChange={(e) => setCustomerNIN(e.target.value)}
+                    className="w-full px-4 py-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 outline-none focus:ring-2 focus:ring-brand-teal" 
+                    placeholder="Ex: 123456789" 
+                  />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">

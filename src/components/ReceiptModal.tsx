@@ -30,6 +30,7 @@ interface Transaction {
   remainingAmount?: number;
   customerBirthDate?: string;
   customerBirthPlace?: string;
+  saleType?: "retail" | "upgrade";
 }
 
 interface ReceiptModalProps {
@@ -182,6 +183,11 @@ export default function ReceiptModal({ transaction, onClose }: ReceiptModalProps
               </p>
             )}
             {transaction.customerSN && <p><strong>SN :</strong> {transaction.customerSN}</p>}
+            {transaction.saleType && (
+              <p>
+                <strong>Type :</strong> {transaction.saleType === "upgrade" ? "Rehaussement de niveau" : "Vente au détail"}
+              </p>
+            )}
             <p><strong>Paiement :</strong> {translateMethod(transaction.paymentMethod)}</p>
           </div>
 

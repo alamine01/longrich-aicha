@@ -13,16 +13,24 @@ import {
   ChevronLeft,
   ChevronRight,
   Loader2,
-  Trash2
+  Trash2,
+  User
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { collection, onSnapshot, query, orderBy, deleteDoc, doc, writeBatch, increment, updateDoc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ReceiptModal from "@/components/ReceiptModal";
+import CustomerDetailsModal from "@/components/CustomerDetailsModal";
 
 export default function HistoryPage() {
   const [sales, setSales] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Pour la modale de reçu
+  const [selectedTx, setSelectedTx] = useState<any>(null);
+  
+  // Pour la modale de détails client
+  const [selectedCustomerForDetails, setSelectedCustomerForDetails] = useState<{sn: string | null, name: string, fallbackData?: any} | null>(null);
 
   const toggleStatus = async (tx: any) => {
     const currentStatus = tx.status === "unpaid" || tx.status === "Non payé" ? "unpaid" : "paid";
@@ -35,7 +43,6 @@ export default function HistoryPage() {
     }
   };
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedTx, setSelectedTx] = useState<any>(null);
   const [dateFilter, setDateFilter] = useState("all");
 
   useEffect(() => {
@@ -195,19 +202,21 @@ export default function HistoryPage() {
             <Loader2 className="w-8 h-8 animate-spin text-brand-teal" />
           </div>
         ) : (
-          <div className="overflow-x-auto w-full">
-            <table className="w-full text-left border-collapse min-w-[900px]">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">ID / Date</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Client</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Type / PV</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Montant</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Méthode</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Statut</th>
-                  <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Action</th>
-                </tr>
-              </thead>
+          <div className="w-full">
+            {/* Vue Tableau pour grands écrans */}
+            <div className="hidden lg:block overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">ID / Date</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Client</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Type / PV</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Montant</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Méthode</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase">Statut</th>
+                    <th className="px-6 py-4 text-xs font-bold text-slate-500 uppercase text-right">Action</th>
+                  </tr>
+                </thead>
               <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
                 {filteredSales.map((tx) => {
                   const dateObj = tx.createdAt?.seconds 
@@ -246,7 +255,17 @@ export default function HistoryPage() {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <p className="text-sm font-medium text-slate-900 dark:text-white truncate max-w-[150px]">{type}</p>
-                        <p className="text-xs text-brand-teal font-bold">{tx.totalPV} PV</p>
+                        <div className="flex items-center space-x-2 mt-1">
+                          <p className="text-xs text-brand-teal font-bold">{tx.totalPV} PV</p>
+                          {tx.saleType && (
+                            <span className={cn(
+                              "px-2 py-0.5 text-[10px] font-bold rounded-md",
+                              tx.saleType === "upgrade" ? "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                            )}>
+                              {tx.saleType === "upgrade" ? "Upgrade" : "Détail"}
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-6 py-4 font-black text-slate-900 dark:text-white whitespace-nowrap">
                         {Number(tx.totalAmount).toLocaleString()} FCFA
@@ -276,6 +295,27 @@ export default function HistoryPage() {
                       </td>
                       <td className="px-6 py-4 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end space-x-2">
+                          <button 
+                            onClick={() => {
+                              setSelectedCustomerForDetails({ 
+                                sn: tx.customerId || tx.customerSN, 
+                                name: tx.customerName,
+                                fallbackData: {
+                                  nin: tx.customerNIN,
+                                  phone: tx.customerPhone,
+                                  address: tx.customerAddress,
+                                  birthDate: tx.customerBirthDate,
+                                  birthPlace: tx.customerBirthPlace,
+                                  sponsorCode: tx.customerSponsor,
+                                  placementCode: tx.customerPlacement
+                                }
+                              });
+                            }}
+                            className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-500 hover:text-indigo-600 hover:bg-indigo-100 transition-colors" 
+                            title="Détails du client"
+                          >
+                            <User className="w-4 h-4" />
+                          </button>
                           <button 
                             onClick={() => {
                               setSelectedTx(tx);
@@ -314,6 +354,100 @@ export default function HistoryPage() {
                 )}
               </tbody>
             </table>
+            </div>
+
+            {/* Vue Cartes pour petits écrans */}
+            <div className="block lg:hidden p-4 space-y-4">
+              {filteredSales.map((tx) => {
+                const dateObj = tx.createdAt?.seconds 
+                  ? new Date(tx.createdAt.seconds * 1000) 
+                  : tx.createdAt 
+                    ? new Date(tx.createdAt) 
+                    : new Date();
+                const dateStr = dateObj.toLocaleDateString("fr-FR");
+                const timeStr = dateObj.toLocaleTimeString("fr-FR", { hour: '2-digit', minute: '2-digit' });
+
+                return (
+                  <div key={tx.id} className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800 space-y-3">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-bold text-slate-900 dark:text-white">{tx.customerName}</p>
+                        {tx.customerSN && <p className="text-xs font-mono text-brand-teal font-bold">{tx.customerSN}</p>}
+                        {tx.saleType && (
+                          <span className={cn(
+                            "inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-md",
+                            tx.saleType === "upgrade" ? "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
+                          )}>
+                            {tx.saleType === "upgrade" ? "Upgrade" : "Détail"}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <p className="font-black text-slate-900 dark:text-white">{Number(tx.totalAmount).toLocaleString()} F</p>
+                        <p className="text-xs text-brand-teal font-bold">{tx.totalPV} PV</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-xs text-slate-500 border-t border-slate-200 dark:border-slate-700 pt-2">
+                      <span>{dateStr} à {timeStr}</span>
+                      <button
+                        onClick={() => toggleStatus(tx)}
+                        className={cn(
+                          "flex items-center font-bold px-2 py-0.5 rounded-full border transition-all",
+                          tx.status === "unpaid" || tx.status === "Non payé"
+                            ? "bg-rose-50 border-rose-200 text-rose-600 dark:bg-rose-900/20 dark:border-rose-800 dark:text-rose-400"
+                            : "bg-emerald-50 border-emerald-200 text-emerald-600 dark:bg-emerald-900/20 dark:border-emerald-800 dark:text-emerald-400"
+                        )}
+                      >
+                        <span className={cn(
+                          "w-1.5 h-1.5 rounded-full mr-1",
+                          tx.status === "unpaid" || tx.status === "Non payé" ? "bg-rose-500" : "bg-emerald-500"
+                        )}></span>
+                        {tx.status === "unpaid" || tx.status === "Non payé" ? "Non payé" : "Payé"}
+                      </button>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-200 dark:border-slate-700">
+                      <button 
+                        onClick={() => setSelectedCustomerForDetails({ 
+                          sn: tx.customerId || tx.customerSN, 
+                          name: tx.customerName,
+                          fallbackData: {
+                            nin: tx.customerNIN,
+                            phone: tx.customerPhone,
+                            address: tx.customerAddress,
+                            birthDate: tx.customerBirthDate,
+                            birthPlace: tx.customerBirthPlace,
+                            sponsorCode: tx.customerSponsor,
+                            placementCode: tx.customerPlacement
+                          }
+                        })}
+                        className="flex-1 flex items-center justify-center py-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 rounded-lg font-bold text-xs hover:bg-indigo-100 transition-colors"
+                      >
+                        <User className="w-3.5 h-3.5 mr-1" /> Profil
+                      </button>
+                      <button 
+                        onClick={() => setSelectedTx(tx)}
+                        className="flex-1 flex items-center justify-center py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg font-bold text-xs hover:bg-slate-300 transition-colors"
+                      >
+                        <FileText className="w-3.5 h-3.5 mr-1" /> Reçu
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(tx)}
+                        className="p-2 bg-rose-50 dark:bg-rose-900/20 text-rose-500 rounded-lg hover:bg-rose-100 transition-colors"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+              {filteredSales.length === 0 && (
+                <div className="py-12 text-center text-slate-500">
+                  Aucune transaction trouvée.
+                </div>
+              )}
+            </div>
           </div>
         )}
 
@@ -332,6 +466,15 @@ export default function HistoryPage() {
         transaction={selectedTx} 
         onClose={() => setSelectedTx(null)} 
       />
+
+      {selectedCustomerForDetails && (
+        <CustomerDetailsModal
+          customerSN={selectedCustomerForDetails.sn}
+          transactionCustomerName={selectedCustomerForDetails.name}
+          fallbackData={selectedCustomerForDetails.fallbackData}
+          onClose={() => setSelectedCustomerForDetails(null)}
+        />
+      )}
     </div>
   );
 }

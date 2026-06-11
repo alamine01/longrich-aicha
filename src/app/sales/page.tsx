@@ -85,6 +85,7 @@ export default function SalesPage() {
   const [customerAddress, setCustomerAddress] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [saleType, setSaleType] = useState<"retail" | "upgrade">("retail");
   const [paymentStatus, setPaymentStatus] = useState<"paid" | "unpaid" | "partial">("paid");
   const [paidAmountInput, setPaidAmountInput] = useState<string>("");
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -132,10 +133,11 @@ export default function SalesPage() {
 
   const filteredSuggestions = (customerName.trim() === "" && customerSN.trim() === "")
     ? []
-    : registeredCustomers.filter(c => 
-        (c.name && c.name.toLowerCase().includes(customerName.toLowerCase())) ||
-        (c.sn && c.sn.toLowerCase().includes(customerSN.toLowerCase()))
-      ).slice(0, 5);
+    : registeredCustomers.filter(c => {
+        const matchName = customerName.trim() !== "" ? (c.name && c.name.toLowerCase().includes(customerName.toLowerCase())) : false;
+        const matchSN = customerSN.trim() !== "" ? (c.sn && c.sn.toLowerCase().includes(customerSN.toLowerCase())) : false;
+        return matchName || matchSN;
+      }).slice(0, 5);
   
   const handleScan = (code: string) => {
     try {
@@ -254,6 +256,7 @@ export default function SalesPage() {
         customerAddress: customerAddress || "",
         customerPhone: customerPhone || "",
         paymentMethod,
+        saleType,
         totalAmount,
         totalPV,
         paymentStatus,
@@ -309,6 +312,7 @@ export default function SalesPage() {
         customerAddress: customerAddress || "",
         customerPhone: customerPhone || "",
         paymentMethod,
+        saleType,
         totalAmount,
         totalPV,
         paymentStatus,
@@ -336,6 +340,7 @@ export default function SalesPage() {
       setCustomerAddress("");
       setCustomerPhone("");
       setPaymentMethod("cash");
+      setSaleType("retail");
       setPaymentStatus("paid");
       setPaidAmountInput("");
       
@@ -592,6 +597,37 @@ export default function SalesPage() {
                 <span className="text-xs font-bold">{method.label}</span>
               </button>
             ))}
+          </div>
+
+          {/* Type de Vente */}
+          <div className="space-y-3 mt-6 pt-6 border-t border-slate-100 dark:border-slate-800">
+            <label className="block text-xs font-bold text-slate-500 uppercase">Type de Vente</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setSaleType("retail")}
+                className={cn(
+                  "py-2 px-3 rounded-lg border text-xs font-bold text-center transition-all cursor-pointer",
+                  saleType === "retail"
+                    ? "bg-brand-teal border-brand-teal text-white shadow-sm"
+                    : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100"
+                )}
+              >
+                Au détail (Personnel)
+              </button>
+              <button
+                type="button"
+                onClick={() => setSaleType("upgrade")}
+                className={cn(
+                  "py-2 px-3 rounded-lg border text-xs font-bold text-center transition-all cursor-pointer",
+                  saleType === "upgrade"
+                    ? "bg-violet-500 border-violet-500 text-white shadow-sm"
+                    : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100"
+                )}
+              >
+                Rehaussement de niveau
+              </button>
+            </div>
           </div>
 
           {/* Statut du Règlement */}

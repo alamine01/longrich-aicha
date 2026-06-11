@@ -130,7 +130,19 @@ export default function Dashboard() {
 
       if (!createdAtMs) return;
 
-      const isPaid = sale.status !== "unpaid" && sale.status !== "Non payé" && sale.paymentStatus !== "unpaid";
+      const isOldPaid = sale.status === "paid" || sale.status === "Payé";
+      const isUnpaid = sale.status === "unpaid" || sale.status === "Non payé";
+      const paymentStatus = sale.paymentStatus || (isOldPaid ? "paid" : "unpaid");
+      
+      const isFullyPaid = paymentStatus === "paid";
+      const hasPartialPayment = paymentStatus === "partial";
+
+      let actualPaidAmount = 0;
+      if (sale.paidAmount !== undefined) {
+        actualPaidAmount = Number(sale.paidAmount);
+      } else {
+        actualPaidAmount = isFullyPaid ? Number(sale.totalAmount || 0) : 0;
+      }
 
       // Calculate sale cost
       let saleCost = 0;
@@ -140,7 +152,7 @@ export default function Dashboard() {
           saleCost += itemPurchasePrice * Number(item.quantity || 1);
         });
       }
-      const saleRevenue = Number(sale.totalAmount || 0);
+      const saleTotalAmount = Number(sale.totalAmount || 0);
 
       // Determine profit: fixed profit for kits, saleRevenue - saleCost for regular products
       const getKitProfit = (kitName: string): number => {
@@ -159,48 +171,30 @@ export default function Dashboard() {
         return 10000;
       };
 
-      const saleProfit = sale.kitName ? getKitProfit(sale.kitName) : saleRevenue - saleCost;
+      const saleProfit = sale.kitName ? getKitProfit(sale.kitName) : saleTotalAmount - saleCost;
 
       // Période courante
       if (period === "all" || createdAtMs >= currentStart) {
-        if (isPaid) {
-          revenue += saleRevenue;
-          pv += Number(sale.totalPV || 0);
+        revenue += actualPaidAmount;
+        if (isFullyPaid) {
           profit += saleProfit;
+        }
+        if (actualPaidAmount > 0 || isFullyPaid) {
+          pv += Number(sale.totalPV || 0);
           count += 1;
         }
       }
 
       // Période précédente pour comparaison
       if (period !== "all" && createdAtMs >= prevStart && createdAtMs < prevEnd) {
-        if (isPaid) {
-          prevRevenue += saleRevenue;
-          prevPv += Number(sale.totalPV || 0);
+        prevRevenue += actualPaidAmount;
+        if (isFullyPaid) {
           prevProfit += saleProfit;
+        }
+        if (actualPaidAmount > 0 || isFullyPaid) {
+          prevPv += Number(sale.totalPV || 0);
           prevCount += 1;
         }
-      }
-    });
-
-    allEcash.forEach((item) => {
-      const createdAtMs = item.createdAt?.seconds
-        ? item.createdAt.seconds * 1000
-        : item.createdAt
-          ? new Date(item.createdAt).getTime()
-          : 0;
-
-      if (!createdAtMs) return;
-
-      const itemProfit = Number(item.profit || 0);
-
-      // Période courante
-      if (period === "all" || createdAtMs >= currentStart) {
-        profit += itemProfit;
-      }
-
-      // Période précédente pour comparaison
-      if (period !== "all" && createdAtMs >= prevStart && createdAtMs < prevEnd) {
-        prevProfit += itemProfit;
       }
     });
 

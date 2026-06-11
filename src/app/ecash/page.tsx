@@ -264,15 +264,58 @@ export default function EcashPage() {
           : 0;
     };
 
-    // Calculate Turnover from Paid Sales
+    // Calculate Turnover and Profit from Paid Sales
     let totalSalesTurnover = 0;
+    let totalSalesProfit = 0;
     sales.forEach((sale) => {
       const dateMs = getCreatedAtMs(sale);
       if (!dateMs) return;
 
-      const isPaid = sale.status !== "unpaid" && sale.status !== "Non payé" && sale.paymentStatus !== "unpaid";
-      if (isPaid && (period === "all" || (dateMs >= currentStart && dateMs < currentEnd))) {
-        totalSalesTurnover += Number(sale.totalAmount || 0);
+      const isOldPaid = sale.status === "paid" || sale.status === "Payé";
+      const paymentStatus = sale.paymentStatus || (isOldPaid ? "paid" : "unpaid");
+      const isFullyPaid = paymentStatus === "paid";
+
+      let actualPaidAmount = 0;
+      if (sale.paidAmount !== undefined) {
+        actualPaidAmount = Number(sale.paidAmount);
+      } else {
+        actualPaidAmount = isFullyPaid ? Number(sale.totalAmount || 0) : 0;
+      }
+
+      // Calculate sale cost
+      let saleCost = 0;
+      if (sale.items && Array.isArray(sale.items)) {
+        sale.items.forEach((item: any) => {
+          const itemPurchasePrice = Number(item.purchasePrice || 0);
+          saleCost += itemPurchasePrice * Number(item.quantity || 1);
+        });
+      }
+      const saleTotalAmount = Number(sale.totalAmount || 0);
+
+      // Determine profit
+      const getKitProfit = (kitName: string): number => {
+        const name = kitName.toLowerCase();
+        if (name.includes("depuis")) {
+          const parts = name.split("depuis");
+          const startingPart = parts[1] || "";
+          if (startingPart.includes("q-silver") || startingPart.includes("q silver")) {
+            return 5000;
+          }
+          return 10000;
+        }
+        if (name.includes("q-silver") || name.includes("q silver")) {
+          return 5000;
+        }
+        return 10000;
+      };
+
+      const saleProfit = sale.kitName ? getKitProfit(sale.kitName) : saleTotalAmount - saleCost;
+
+      if (period === "all" || (dateMs >= currentStart && dateMs < currentEnd)) {
+        totalSalesTurnover += actualPaidAmount;
+        if (isFullyPaid) {
+          totalSalesProfit += saleProfit;
+        }
       }
     });
 
@@ -310,10 +353,11 @@ export default function EcashPage() {
       }
     });
 
-    const netProfit = longrichCommission + totalWithdrawalProfit + totalDepositProfit - totalExpensesAmount;
+    const netProfit = longrichCommission + totalSalesProfit + totalWithdrawalProfit + totalDepositProfit - totalExpensesAmount;
 
     return {
       totalSalesTurnover,
+      totalSalesProfit,
       longrichCommission,
       totalWithdrawalAmount,
       totalWithdrawalProfit,
@@ -806,11 +850,19 @@ export default function EcashPage() {
                 <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">
                   {stats.totalSalesTurnover.toLocaleString()} FCFA
                 </p>
-                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-400 uppercase">Longrich Commission (6%)</span>
-                  <span className="text-sm font-black text-emerald-500">
-                    +{stats.longrichCommission.toLocaleString()} FCFA
-                  </span>
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5 text-xs font-medium text-slate-500">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-400 uppercase">Longrich Commission (6%)</span>
+                    <span className="text-sm font-black text-emerald-500">
+                      +{stats.longrichCommission.toLocaleString()} FCFA
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-400 uppercase">Bénéfice Ventes</span>
+                    <span className="text-sm font-black text-emerald-500">
+                      +{stats.totalSalesProfit.toLocaleString()} FCFA
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -878,7 +930,7 @@ export default function EcashPage() {
             <div className="space-y-2">
               <h2 className="text-lg font-black text-slate-950 dark:text-white">Bénéfice Net Estimé du Stockiste</h2>
               <p className="text-slate-500 text-sm max-w-xl">
-                Calculé à partir de la commission Longrich de 6% sur le volume des ventes, ajoutée aux bénéfices du service E-cash (retraits + dépôts), puis déduite du total des dépenses.
+                Ce montant correspond à la somme de tous vos gains (Commission Longrich 6%, Bénéfices sur les ventes et Profits E-cash), moins l'ensemble de vos charges d'exploitation (dépenses).
               </p>
             </div>
             

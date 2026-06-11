@@ -82,6 +82,8 @@ interface Customer {
   nin?: string;
   address?: string;
   phone?: string;
+  birthDate?: string;
+  birthPlace?: string;
   updatedAt?: { seconds?: number } | string | Date | null;
 }
 
@@ -351,10 +353,11 @@ export default function KitsPage() {
 
   const filteredSuggestions = (customerName.trim() === "" && customerSN.trim() === "")
     ? []
-    : registeredCustomers.filter(c => 
-        (c.name && c.name.toLowerCase().includes(customerName.toLowerCase())) ||
-        (c.sn && c.sn.toLowerCase().includes(customerSN.toLowerCase()))
-      ).slice(0, 5);
+    : registeredCustomers.filter(c => {
+        const matchName = customerName.trim() !== "" ? (c.name && c.name.toLowerCase().includes(customerName.toLowerCase())) : false;
+        const matchSN = customerSN.trim() !== "" ? (c.sn && c.sn.toLowerCase().includes(customerSN.toLowerCase())) : false;
+        return matchName || matchSN;
+      }).slice(0, 5);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -477,11 +480,40 @@ export default function KitsPage() {
       const finalAmount = isCustomKit ? targetPrice : selectedKit.price;
       const finalPV = isCustomKit ? targetPV : selectedKit.pv;
 
+      // Création ou mise à jour du membre
+      let customerRef;
+      const cleanSN = customerSN && customerSN.trim() !== "" ? customerSN.trim() : null;
+      if (cleanSN) {
+        customerRef = doc(db, "customers", cleanSN);
+      } else {
+        // Nouveau membre sans SN, on génère un doc
+        customerRef = doc(collection(db, "customers"));
+      }
+      
+      const finalSN = cleanSN || customerRef.id;
+
+      batch.set(customerRef, {
+        name: customerName,
+        sn: finalSN,
+        sponsorCode: customerSponsor || "",
+        placementCode: customerPlacement || "",
+        nin: customerNIN || "",
+        address: customerAddress || "",
+        phone: customerPhone || "",
+        birthDate: customerBirthDate || "",
+        birthPlace: customerBirthPlace || "",
+        updatedAt: serverTimestamp(),
+        totalPV: increment(finalPV)
+      }, { merge: true });
+
+      // Add the sale transaction
+
       batch.set(saleRef, {
         customerName,
         customerBirthDate: customerBirthDate || "",
         customerBirthPlace: customerBirthPlace || "",
-        customerSN: null,
+        customerSN: finalSN,
+        customerId: customerRef.id,
         customerSponsor: customerSponsor || "",
         customerPlacement: customerPlacement || "",
         customerNIN: customerNIN || "",
@@ -505,7 +537,8 @@ export default function KitsPage() {
         customerName,
         customerBirthDate: customerBirthDate || "",
         customerBirthPlace: customerBirthPlace || "",
-        customerSN: null,
+        customerSN: finalSN,
+        customerId: customerRef.id,
         customerSponsor: customerSponsor || "",
         customerPlacement: customerPlacement || "",
         customerNIN: customerNIN || "",
@@ -523,22 +556,6 @@ export default function KitsPage() {
         missingItems: missingItems,
         createdAt: { seconds: Math.floor(Date.now() / 1000) }
       };
-
-      // Sauvegarder automatiquement le membre s'il a un SN
-      if (customerSN && customerSN.trim() !== "") {
-        const customerRef = doc(db, "customers", customerSN.trim());
-        batch.set(customerRef, {
-          name: customerName,
-          sn: customerSN.trim(),
-          sponsorCode: customerSponsor || "",
-          placementCode: customerPlacement || "",
-          nin: customerNIN || "",
-          address: customerAddress || "",
-          phone: customerPhone || "",
-          updatedAt: serverTimestamp(),
-          totalPV: increment(finalPV)
-        }, { merge: true });
-      }
 
       // Commit everything atomicaly
       await batch.commit();

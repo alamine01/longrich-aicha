@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 import { collection, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ReceiptModal from "@/components/ReceiptModal";
+import CustomerDetailsModal from "@/components/CustomerDetailsModal";
 
 interface MissingItem {
   name: string;
@@ -71,6 +72,7 @@ export default function ReliquatsPage() {
   const [reliquatsSearch, setReliquatsSearch] = useState("");
   const [customersSearch, setCustomersSearch] = useState("");
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const [selectedCustomerForDetails, setSelectedCustomerForDetails] = useState<{sn: string | null, name: string} | null>(null);
 
   useEffect(() => {
     // 1. Écouter toutes les transactions contenant des reliquats ou des dettes
@@ -752,13 +754,22 @@ export default function ReliquatsPage() {
                           </td>
                           <td className="px-6 py-4 text-sm text-slate-500">{dateStr}</td>
                           <td className="px-6 py-4 text-right whitespace-nowrap">
-                            <button
-                              onClick={() => handleDeleteCustomer(cust.sn, cust.name)}
-                              className="p-2 bg-red-50 dark:bg-red-900/20 text-red-500 hover:text-red-600 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
-                              title="Retirer le membre de la base"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
+                            <div className="flex items-center justify-end space-x-2">
+                              <button
+                                onClick={() => setSelectedCustomerForDetails({ sn: cust.sn, name: cust.name })}
+                                className="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-500 hover:text-indigo-600 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors"
+                                title="Voir les détails du membre"
+                              >
+                                <User className="w-4 h-4" />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteCustomer(cust.sn, cust.name)}
+                                className="p-2 bg-red-50 dark:bg-red-900/20 text-red-500 hover:text-red-600 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                                title="Retirer le membre de la base"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -817,13 +828,22 @@ export default function ReliquatsPage() {
 
                       <div className="flex justify-between items-center pt-2 text-[10px] text-slate-400 font-semibold">
                         <span>Activité : {dateStr}</span>
-                        <button
-                          onClick={() => handleDeleteCustomer(cust.sn, cust.name)}
-                          className="flex items-center space-x-1 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/20 text-rose-500 rounded-lg hover:bg-rose-100 transition-colors cursor-pointer"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Retirer</span>
-                        </button>
+                        <div className="flex space-x-2">
+                          <button
+                            onClick={() => setSelectedCustomerForDetails({ sn: cust.sn, name: cust.name })}
+                            className="flex items-center space-x-1 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950/20 text-indigo-500 rounded-lg hover:bg-indigo-100 transition-colors cursor-pointer"
+                          >
+                            <User className="w-3.5 h-3.5" />
+                            <span>Détails</span>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteCustomer(cust.sn, cust.name)}
+                            className="flex items-center space-x-1 px-3 py-1.5 bg-rose-50 dark:bg-rose-950/20 text-rose-500 rounded-lg hover:bg-rose-100 transition-colors cursor-pointer"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>Retirer</span>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -843,6 +863,14 @@ export default function ReliquatsPage() {
         <ReceiptModal 
           transaction={selectedTx} 
           onClose={() => setSelectedTx(null)} 
+        />
+      )}
+      
+      {selectedCustomerForDetails && (
+        <CustomerDetailsModal
+          customerSN={selectedCustomerForDetails.sn}
+          transactionCustomerName={selectedCustomerForDetails.name}
+          onClose={() => setSelectedCustomerForDetails(null)}
         />
       )}
     </div>

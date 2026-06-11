@@ -262,7 +262,7 @@ export default function HistoryPage() {
                               "px-2 py-0.5 text-[10px] font-bold rounded-md",
                               tx.saleType === "upgrade" ? "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                             )}>
-                              {tx.saleType === "upgrade" ? "Upgrade" : "Détail"}
+                              {tx.saleType === "upgrade" ? "Rehaussement" : "Détail"}
                             </span>
                           )}
                         </div>
@@ -378,7 +378,7 @@ export default function HistoryPage() {
                             "inline-block mt-1 px-2 py-0.5 text-[10px] font-bold rounded-md",
                             tx.saleType === "upgrade" ? "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400" : "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400"
                           )}>
-                            {tx.saleType === "upgrade" ? "Upgrade" : "Détail"}
+                            {tx.saleType === "upgrade" ? "Rehaussement" : "Détail"}
                           </span>
                         )}
                       </div>

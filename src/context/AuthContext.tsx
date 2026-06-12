@@ -1,7 +1,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, User } from "firebase/auth";
+import { onAuthStateChanged, User, signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter, usePathname } from "next/navigation";
 
@@ -52,6 +52,43 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       Promise.resolve().then(() => setLoading(false));
     }
   }, [pathname, router]);
+
+  useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    const logoutUser = async () => {
+      if (user) {
+        try {
+          await signOut(auth);
+          router.push("/login");
+        } catch (error) {
+          console.error("Erreur de déconnexion après inactivité:", error);
+        }
+      }
+    };
+
+    const resetTimer = () => {
+      if (timeoutId) clearTimeout(timeoutId);
+      // 30 minutes d'inactivité
+      timeoutId = setTimeout(logoutUser, 30 * 60 * 1000);
+    };
+
+    if (user) {
+      resetTimer();
+
+      const events = ["mousemove", "keydown", "scroll", "click", "touchstart"];
+      events.forEach((event) => {
+        window.addEventListener(event, resetTimer);
+      });
+
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        events.forEach((event) => {
+          window.removeEventListener(event, resetTimer);
+        });
+      };
+    }
+  }, [user, router]);
 
   const verifyTwoFactor = () => {
     setIsTwoFactorVerified(true);

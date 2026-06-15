@@ -49,11 +49,13 @@ export default function EcashPage() {
   const [sales, setSales] = useState<any[]>([]);
   const [ecash, setEcash] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
+  const [stockAdditions, setStockAdditions] = useState<any[]>([]);
   
   // Loading States
   const [loadingSales, setLoadingSales] = useState(true);
   const [loadingEcash, setLoadingEcash] = useState(true);
   const [loadingExpenses, setLoadingExpenses] = useState(true);
+  const [loadingStockAdditions, setLoadingStockAdditions] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form States - Withdrawal
@@ -113,10 +115,25 @@ export default function EcashPage() {
       setLoadingExpenses(false);
     });
 
+    // 4. Listen to Stock Additions
+    const qStockAdditions = query(collection(db, "stock_additions"), orderBy("createdAt", "desc"));
+    const unsubscribeStockAdditions = onSnapshot(qStockAdditions, (snapshot) => {
+      const fetchedAdditions = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setStockAdditions(fetchedAdditions);
+      setLoadingStockAdditions(false);
+    }, (err) => {
+      console.error("Stock additions loading error:", err);
+      setLoadingStockAdditions(false);
+    });
+
     return () => {
       unsubscribeSales();
       unsubscribeEcash();
       unsubscribeExpenses();
+      unsubscribeStockAdditions();
     };
   }, []);
 
@@ -319,7 +336,20 @@ export default function EcashPage() {
       }
     });
 
-    const longrichCommission = totalSalesTurnover * 0.06;
+    // Calculate total stock additions purchase value
+    let totalStockPurchases = 0;
+    stockAdditions.forEach((addition) => {
+      const dateMs = getCreatedAtMs(addition);
+      if (!dateMs) return;
+
+      if (period === "all" || (dateMs >= currentStart && dateMs < currentEnd)) {
+        const qty = Number(addition.quantityAdded || 0);
+        const price = Number(addition.purchasePrice || 0);
+        totalStockPurchases += qty * price;
+      }
+    });
+
+    const longrichCommission = totalStockPurchases * 0.06;
 
     // E-cash totals
     let totalWithdrawalAmount = 0;
@@ -364,9 +394,10 @@ export default function EcashPage() {
       totalDepositAmount,
       totalDepositProfit,
       totalExpensesAmount,
-      netProfit
+      netProfit,
+      totalStockPurchases
     };
-  }, [sales, ecash, expenses, period]);
+  }, [sales, ecash, expenses, stockAdditions, period]);
 
   // Formatted date string helper
   const formatDate = (createdAt: any) => {
@@ -388,7 +419,7 @@ export default function EcashPage() {
     return ecash.filter(item => item.type === "deposit");
   }, [ecash]);
 
-  const loading = loadingSales || loadingEcash || loadingExpenses;
+  const loading = loadingSales || loadingEcash || loadingExpenses || loadingStockAdditions;
 
   if (loading) {
     return (
@@ -852,6 +883,12 @@ export default function EcashPage() {
                 </p>
                 <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5 text-xs font-medium text-slate-500">
                   <div className="flex justify-between items-center">
+                    <span className="font-bold text-slate-400 uppercase">Achats Stock (Prix Achat)</span>
+                    <span className="text-sm font-black text-slate-700 dark:text-slate-200">
+                      {stats.totalStockPurchases.toLocaleString()} FCFA
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center">
                     <span className="font-bold text-slate-400 uppercase">Longrich Commission (6%)</span>
                     <span className="text-sm font-black text-emerald-500">
                       +{stats.longrichCommission.toLocaleString()} FCFA
@@ -930,7 +967,7 @@ export default function EcashPage() {
             <div className="space-y-2">
               <h2 className="text-lg font-black text-slate-950 dark:text-white">Bénéfice Net Estimé du Stockiste</h2>
               <p className="text-slate-500 text-sm max-w-xl">
-                Ce montant correspond à la somme de tous vos gains (Commission Longrich 6%, Bénéfices sur les ventes et Profits E-cash), moins l'ensemble de vos charges d'exploitation (dépenses).
+                Ce montant correspond à la somme de tous vos gains (Commission Longrich 6% sur les achats de stock, Bénéfices sur les ventes et Profits E-cash), moins l'ensemble de vos charges d'exploitation (dépenses).
               </p>
             </div>
             

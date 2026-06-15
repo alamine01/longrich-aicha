@@ -120,6 +120,21 @@ export default function ProductsPage() {
         // Update existing product
         productData.barcode = barcode.trim() || editingProduct.barcode || generateBarcode();
         await updateDoc(doc(db, "products", editingProduct.id), productData);
+
+        // Log stock addition if new stock is greater than old stock
+        const newStockVal = Number(stock);
+        const oldStockVal = Number(editingProduct.stock || 0);
+        if (newStockVal > oldStockVal) {
+          const diff = newStockVal - oldStockVal;
+          await addDoc(collection(db, "stock_additions"), {
+            productId: editingProduct.id,
+            productName: name,
+            quantityAdded: diff,
+            purchasePrice: Number(purchasePrice),
+            createdAt: serverTimestamp()
+          });
+        }
+
         alert("Produit modifié avec succès !");
       } else {
         // Create new product
@@ -130,10 +145,22 @@ export default function ProductsPage() {
           setTimeout(() => reject(new Error("Délai d'attente dépassé.")), 10000)
         );
 
-        await Promise.race([
+        const docRef: any = await Promise.race([
           addDoc(collection(db, "products"), productData),
           timeoutPromise
         ]);
+
+        const initialStockVal = Number(stock);
+        if (initialStockVal > 0 && docRef && docRef.id) {
+          await addDoc(collection(db, "stock_additions"), {
+            productId: docRef.id,
+            productName: name,
+            quantityAdded: initialStockVal,
+            purchasePrice: Number(purchasePrice),
+            createdAt: serverTimestamp()
+          });
+        }
+
         alert("Produit ajouté avec succès !");
       }
 

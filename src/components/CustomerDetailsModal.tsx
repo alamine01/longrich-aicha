@@ -17,6 +17,18 @@ export default function CustomerDetailsModal({ customerSN, transactionCustomerNa
   const [loadingPurchases, setLoadingPurchases] = useState(true);
   const [error, setError] = useState("");
 
+  // States for editing
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editBirthDate, setEditBirthDate] = useState("");
+  const [editBirthPlace, setEditBirthPlace] = useState("");
+  const [editNIN, setEditNIN] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [editSponsorCode, setEditSponsorCode] = useState("");
+  const [editPlacementCode, setEditPlacementCode] = useState("");
+  const [savingEdit, setSavingEdit] = useState(false);
+
   useEffect(() => {
     async function fetchCustomerData() {
       if (!customerSN) {
@@ -87,6 +99,54 @@ export default function CustomerDetailsModal({ customerSN, transactionCustomerNa
   const sponsorCode = customer?.sponsorCode || fallbackData?.sponsorCode;
   const placementCode = customer?.placementCode || fallbackData?.placementCode;
 
+  const startEditing = () => {
+    setEditName(customer?.name || transactionCustomerName || "");
+    setEditBirthDate(birthDate || "");
+    setEditBirthPlace(birthPlace || "");
+    setEditNIN(nin || "");
+    setEditPhone(phone || "");
+    setEditAddress(address || "");
+    setEditSponsorCode(sponsorCode || "");
+    setEditPlacementCode(placementCode || "");
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    if (!customerSN) return;
+    setSavingEdit(true);
+    try {
+      const { setDoc, doc, serverTimestamp } = await import("firebase/firestore");
+      const customerRef = doc(db, "customers", customerSN);
+      
+      const updatedData = {
+        name: editName.trim(),
+        birthDate: editBirthDate,
+        birthPlace: editBirthPlace.trim(),
+        nin: editNIN.trim(),
+        phone: editPhone.trim(),
+        address: editAddress.trim(),
+        sponsorCode: editSponsorCode.trim(),
+        placementCode: editPlacementCode.trim(),
+        updatedAt: serverTimestamp()
+      };
+
+      await setDoc(customerRef, updatedData, { merge: true });
+      
+      // Mettre à jour l'état local
+      setCustomer((prev: any) => ({
+        ...prev,
+        ...updatedData
+      }));
+      setIsEditing(false);
+      alert("Informations du membre mises à jour avec succès !");
+    } catch (err) {
+      console.error("Erreur lors de la sauvegarde :", err);
+      alert("Une erreur est survenue lors de l'enregistrement.");
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in">
       <div className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 flex flex-col scale-in-center">
@@ -120,9 +180,22 @@ export default function CustomerDetailsModal({ customerSN, transactionCustomerNa
             <div className="space-y-6">
               {/* En-tête profil */}
               <div className="text-center pb-6 border-b border-slate-100 dark:border-slate-800">
-                <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-1">
-                  {customer?.name || transactionCustomerName}
-                </h3>
+                {isEditing ? (
+                  <div className="max-w-xs mx-auto mb-2 text-left">
+                    <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Nom complet du membre</label>
+                    <input
+                      type="text"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      className="w-full font-bold px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal text-slate-900 dark:text-white"
+                      placeholder="Nom complet"
+                    />
+                  </div>
+                ) : (
+                  <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-1">
+                    {customer?.name || transactionCustomerName}
+                  </h3>
+                )}
                 <span className="inline-flex items-center px-3 py-1 bg-brand-teal/10 text-brand-teal font-bold rounded-full text-xs">
                   <Hash className="w-3 h-3 mr-1" />
                   {customer?.sn || customerSN}
@@ -145,23 +218,72 @@ export default function CustomerDetailsModal({ customerSN, transactionCustomerNa
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                   <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center"><Calendar className="w-3 h-3 mr-1" /> Date de naissance</p>
-                  <p className="font-bold text-slate-700 dark:text-slate-200">{birthDate ? new Date(birthDate).toLocaleDateString("fr-FR") : "Non renseignée"}</p>
+                  {isEditing ? (
+                    <input
+                      type="date"
+                      value={editBirthDate}
+                      onChange={(e) => setEditBirthDate(e.target.value)}
+                      className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded outline-none focus:ring-2 focus:ring-brand-teal text-slate-900 dark:text-white"
+                    />
+                  ) : (
+                    <p className="font-bold text-slate-700 dark:text-slate-200">{birthDate ? new Date(birthDate).toLocaleDateString("fr-FR") : "Non renseignée"}</p>
+                  )}
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                   <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center"><MapPin className="w-3 h-3 mr-1" /> Lieu de naissance</p>
-                  <p className="font-bold text-slate-700 dark:text-slate-200">{birthPlace || "Non renseigné"}</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editBirthPlace}
+                      onChange={(e) => setEditBirthPlace(e.target.value)}
+                      placeholder="Lieu de naissance"
+                      className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded outline-none focus:ring-2 focus:ring-brand-teal text-slate-900 dark:text-white"
+                    />
+                  ) : (
+                    <p className="font-bold text-slate-700 dark:text-slate-200">{birthPlace || "Non renseigné"}</p>
+                  )}
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                   <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center"><ShieldCheck className="w-3 h-3 mr-1" /> NIN (Identité)</p>
-                  <p className="font-bold text-slate-700 dark:text-slate-200">{nin || "Non renseigné"}</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editNIN}
+                      onChange={(e) => setEditNIN(e.target.value)}
+                      placeholder="Numéro National d'Identité"
+                      className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded outline-none focus:ring-2 focus:ring-brand-teal text-slate-900 dark:text-white"
+                    />
+                  ) : (
+                    <p className="font-bold text-slate-700 dark:text-slate-200">{nin || "Non renseigné"}</p>
+                  )}
                 </div>
                 <div className="bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                   <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center"><Phone className="w-3 h-3 mr-1" /> Téléphone</p>
-                  <p className="font-bold text-slate-700 dark:text-slate-200">{phone || "Non renseigné"}</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editPhone}
+                      onChange={(e) => setEditPhone(e.target.value)}
+                      placeholder="Téléphone"
+                      className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded outline-none focus:ring-2 focus:ring-brand-teal text-slate-900 dark:text-white"
+                    />
+                  ) : (
+                    <p className="font-bold text-slate-700 dark:text-slate-200">{phone || "Non renseigné"}</p>
+                  )}
                 </div>
                 <div className="sm:col-span-2 bg-slate-50 dark:bg-slate-800/40 p-4 rounded-xl border border-slate-100 dark:border-slate-800">
                   <p className="text-[10px] font-bold text-slate-400 uppercase mb-1 flex items-center"><MapPin className="w-3 h-3 mr-1" /> Adresse</p>
-                  <p className="font-bold text-slate-700 dark:text-slate-200">{address || "Non renseignée"}</p>
+                  {isEditing ? (
+                    <input
+                      type="text"
+                      value={editAddress}
+                      onChange={(e) => setEditAddress(e.target.value)}
+                      placeholder="Adresse complète"
+                      className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded outline-none focus:ring-2 focus:ring-brand-teal text-slate-900 dark:text-white"
+                    />
+                  ) : (
+                    <p className="font-bold text-slate-700 dark:text-slate-200">{address || "Non renseignée"}</p>
+                  )}
                 </div>
               </div>
 
@@ -171,11 +293,31 @@ export default function CustomerDetailsModal({ customerSN, transactionCustomerNa
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-indigo-50 dark:bg-indigo-900/10 p-3 rounded-xl border border-indigo-100 dark:border-indigo-900/30">
                     <p className="text-[10px] font-bold text-indigo-400 uppercase mb-1">Code Parrain</p>
-                    <p className="font-bold text-indigo-700 dark:text-indigo-300">{sponsorCode || "Aucun"}</p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editSponsorCode}
+                        onChange={(e) => setEditSponsorCode(e.target.value)}
+                        placeholder="Ex: Code Parrain"
+                        className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-850 rounded outline-none focus:ring-2 focus:ring-indigo-400 text-indigo-900 dark:text-indigo-300 font-bold"
+                      />
+                    ) : (
+                      <p className="font-bold text-indigo-700 dark:text-indigo-300">{sponsorCode || "Aucun"}</p>
+                    )}
                   </div>
                   <div className="bg-purple-50 dark:bg-purple-900/10 p-3 rounded-xl border border-purple-100 dark:border-purple-900/30">
                     <p className="text-[10px] font-bold text-purple-400 uppercase mb-1">Code Placement</p>
-                    <p className="font-bold text-purple-700 dark:text-purple-300">{placementCode || "Aucun"}</p>
+                    {isEditing ? (
+                      <input
+                        type="text"
+                        value={editPlacementCode}
+                        onChange={(e) => setEditPlacementCode(e.target.value)}
+                        placeholder="Ex: Code Placement"
+                        className="w-full px-2.5 py-1 text-xs bg-white dark:bg-slate-900 border border-purple-200 dark:border-purple-850 rounded outline-none focus:ring-2 focus:ring-purple-400 text-purple-900 dark:text-purple-300 font-bold"
+                      />
+                    ) : (
+                      <p className="font-bold text-purple-700 dark:text-purple-300">{placementCode || "Aucun"}</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -265,13 +407,41 @@ export default function CustomerDetailsModal({ customerSN, transactionCustomerNa
           )}
         </div>
 
-        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 text-center shrink-0">
-          <button 
-            onClick={onClose}
-            className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-lg hover:opacity-90 transition-opacity"
-          >
-            Fermer
-          </button>
+        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-200 dark:border-slate-800 flex justify-end items-center gap-3 shrink-0">
+          {isEditing ? (
+            <>
+              <button 
+                onClick={() => setIsEditing(false)}
+                disabled={savingEdit}
+                className="px-5 py-2 text-slate-500 hover:text-slate-700 font-bold text-sm"
+              >
+                Annuler
+              </button>
+              <button 
+                onClick={handleSave}
+                disabled={savingEdit}
+                className="px-6 py-2 bg-brand-teal text-white font-bold rounded-lg hover:opacity-90 transition-opacity flex items-center text-sm shadow-md cursor-pointer"
+              >
+                {savingEdit ? <Loader2 className="w-4 h-4 animate-spin mr-1.5" /> : null}
+                Enregistrer
+              </button>
+            </>
+          ) : (
+            <>
+              <button 
+                onClick={startEditing}
+                className="px-5 py-2 bg-indigo-50 dark:bg-indigo-950/20 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 font-bold rounded-lg transition-colors text-sm cursor-pointer"
+              >
+                Modifier
+              </button>
+              <button 
+                onClick={onClose}
+                className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold rounded-lg hover:opacity-90 transition-opacity text-sm shadow-sm cursor-pointer"
+              >
+                Fermer
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

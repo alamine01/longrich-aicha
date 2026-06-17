@@ -367,7 +367,24 @@ export default function EcashPage() {
       }
     });
 
-    const longrichCommission = totalStockPurchases * 0.06;
+    // Calculate total sold products purchase value to compute 6% commission on products sold
+    let totalSoldProductsPurchaseValue = 0;
+    sales.forEach((sale) => {
+      const dateMs = getCreatedAtMs(sale);
+      if (!dateMs) return;
+
+      if (period === "all" || (dateMs >= currentStart && dateMs < currentEnd)) {
+        if (sale.items && Array.isArray(sale.items)) {
+          sale.items.forEach((item: any) => {
+            const itemPurchasePrice = Number(item.purchasePrice || 0);
+            const qty = Number(item.quantity || 1);
+            totalSoldProductsPurchaseValue += itemPurchasePrice * qty;
+          });
+        }
+      }
+    });
+
+    const longrichCommission = totalSoldProductsPurchaseValue * 0.06;
 
     // E-cash totals
     let totalWithdrawalAmount = 0;

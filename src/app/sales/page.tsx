@@ -225,6 +225,7 @@ export default function SalesPage() {
 
       // Calculer les reliquats (missingItems) pour les produits hors stock
       const missingItems: {
+        productId: string;
         name: string;
         quantity: number;
         status: "pending" | "delivered";
@@ -235,6 +236,7 @@ export default function SalesPage() {
         const currentStock = originalProduct ? Math.max(0, originalProduct.stock) : 0;
         if (currentStock < item.quantity) {
           missingItems.push({
+            productId: item.id,
             name: item.name,
             quantity: item.quantity - currentStock,
             status: "pending"

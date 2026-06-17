@@ -19,12 +19,13 @@ import {
   Printer
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { collection, onSnapshot, doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, onSnapshot, doc, updateDoc, deleteDoc, query, where, getDocs, increment } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import ReceiptModal from "@/components/ReceiptModal";
 import CustomerDetailsModal from "@/components/CustomerDetailsModal";
 
 interface MissingItem {
+  productId?: string;
   name: string;
   quantity: number;
   status?: "pending" | "delivered";
@@ -113,18 +114,42 @@ export default function ReliquatsPage() {
     };
   }, []);
 
-  // Marquer un produit d'un reliquat comme livré
+  // Marquer un produit d'un reliquat comme livré et déduire du stock
   const handleDeliverItem = async (transactionId: string, itemIndex: number) => {
     const tx = sales.find(s => s.id === transactionId);
     if (!tx || !tx.missingItems) return;
 
-    if (!confirm(`Confirmer la livraison de "${tx.missingItems[itemIndex].name}" ?`)) return;
+    const item = tx.missingItems[itemIndex];
+    if (!confirm(`Confirmer la livraison de "${item.name}" ?`)) return;
 
     try {
+      // 1. Déduire la quantité livrée du stock du produit
+      let productRef = null;
+
+      if (item.productId) {
+        productRef = doc(db, "products", item.productId);
+      } else {
+        // Fallback de recherche par nom exact pour les anciens reliquats
+        const productsRef = collection(db, "products");
+        const q = query(productsRef, where("name", "==", item.name));
+        const querySnapshot = await getDocs(q);
+        if (!querySnapshot.empty) {
+          productRef = doc(db, "products", querySnapshot.docs[0].id);
+        }
+      }
+
+      if (productRef) {
+        await updateDoc(productRef, {
+          stock: increment(-item.quantity)
+        });
+      } else {
+        console.warn(`Produit "${item.name}" introuvable. Le stock n'a pas pu être déduit.`);
+      }
+
+      // 2. Mettre à jour l'élément à l'index spécifié dans la transaction
       const docRef = doc(db, "sales", transactionId);
       const updatedMissingItems = [...tx.missingItems];
       
-      // Mettre à jour l'élément à l'index spécifié
       updatedMissingItems[itemIndex] = {
         ...updatedMissingItems[itemIndex],
         status: "delivered",
@@ -134,6 +159,8 @@ export default function ReliquatsPage() {
       await updateDoc(docRef, {
         missingItems: updatedMissingItems
       });
+
+      alert(`Livraison de "${item.name}" enregistrée et stock déduit avec succès !`);
     } catch (error) {
       console.error("Error delivering reliquat item:", error);
       alert("Une erreur est survenue lors de la livraison.");

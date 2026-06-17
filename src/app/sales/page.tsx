@@ -85,7 +85,7 @@ export default function SalesPage() {
   const [customerAddress, setCustomerAddress] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
-  const [saleType, setSaleType] = useState<"retail" | "upgrade">("retail");
+  const [saleType, setSaleType] = useState<"retail" | "upgrade">("upgrade");
   const [paymentStatus, setPaymentStatus] = useState<"paid" | "unpaid" | "partial">("paid");
   const [paidAmountInput, setPaidAmountInput] = useState<string>("");
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -339,7 +339,7 @@ export default function SalesPage() {
       setCustomerAddress("");
       setCustomerPhone("");
       setPaymentMethod("cash");
-      setSaleType("retail");
+      setSaleType("upgrade");
       setPaymentStatus("paid");
       setPaidAmountInput("");
       
@@ -613,7 +613,7 @@ export default function SalesPage() {
                     : "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 hover:bg-slate-100"
                 )}
               >
-                Au détail (Personnel)
+                Vente au détail personnelle (Retail)
               </button>
               <button
                 type="button"

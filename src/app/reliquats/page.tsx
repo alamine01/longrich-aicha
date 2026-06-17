@@ -63,7 +63,7 @@ interface Customer {
 }
 
 export default function ReliquatsPage() {
-  const [activeTab, setActiveTab] = useState<"reliquats" | "debts" | "customers">("reliquats");
+  const [activeTab, setActiveTab] = useState<"reliquats_kits" | "reliquats_normal" | "debts" | "customers">("reliquats_kits");
   const [sales, setSales] = useState<Transaction[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loadingSales, setLoadingSales] = useState(true);
@@ -234,14 +234,32 @@ export default function ReliquatsPage() {
     }
   };
 
-  // Filtrer les ventes ayant des reliquats en attente
-  const pendingReliquats = useMemo(() => {
+  // Filtrer les ventes ayant des reliquats en attente pour les ADHÉSIONS
+  const pendingKitsReliquats = useMemo(() => {
     return sales.filter(tx => {
-      // Vérifier s'il y a au moins un produit non livré
+      if (!tx.kitName) return false;
       const hasPending = tx.missingItems?.some(item => item.status !== "delivered");
       if (!hasPending) return false;
 
-      // Filtre de recherche
+      const query = reliquatsSearch.toLowerCase().trim();
+      if (query === "") return true;
+
+      return (
+        tx.id.toLowerCase().includes(query) ||
+        (tx.customerName && tx.customerName.toLowerCase().includes(query)) ||
+        (tx.customerSN && tx.customerSN.toLowerCase().includes(query)) ||
+        tx.missingItems?.some(item => item.name.toLowerCase().includes(query))
+      );
+    });
+  }, [sales, reliquatsSearch]);
+
+  // Filtrer les ventes ayant des reliquats en attente pour les VENTES NORMALES
+  const pendingNormalReliquats = useMemo(() => {
+    return sales.filter(tx => {
+      if (tx.kitName) return false;
+      const hasPending = tx.missingItems?.some(item => item.status !== "delivered");
+      if (!hasPending) return false;
+
       const query = reliquatsSearch.toLowerCase().trim();
       if (query === "") return true;
 
@@ -272,14 +290,31 @@ export default function ReliquatsPage() {
     });
   }, [sales, reliquatsSearch]);
 
-  // Filtrer les reliquats déjà livrés pour l'historique
-  const completedReliquats = useMemo(() => {
+  // Filtrer les reliquats déjà livrés pour l'historique des ADHÉSIONS
+  const completedKitsReliquats = useMemo(() => {
     return sales.filter(tx => {
-      // Toutes les pièces doivent être marquées "delivered"
+      if (!tx.kitName) return false;
       const allDelivered = tx.missingItems?.every(item => item.status === "delivered");
-      if (!allDelivered) return false;
+      if (!allDelivered || !tx.missingItems || tx.missingItems.length === 0) return false;
 
-      // Filtre de recherche
+      const query = reliquatsSearch.toLowerCase().trim();
+      if (query === "") return true;
+
+      return (
+        tx.id.toLowerCase().includes(query) ||
+        (tx.customerName && tx.customerName.toLowerCase().includes(query)) ||
+        (tx.customerSN && tx.customerSN.toLowerCase().includes(query))
+      );
+    });
+  }, [sales, reliquatsSearch]);
+
+  // Filtrer les reliquats déjà livrés pour l'historique des VENTES NORMALES
+  const completedNormalReliquats = useMemo(() => {
+    return sales.filter(tx => {
+      if (tx.kitName) return false;
+      const allDelivered = tx.missingItems?.every(item => item.status === "delivered");
+      if (!allDelivered || !tx.missingItems || tx.missingItems.length === 0) return false;
+
       const query = reliquatsSearch.toLowerCase().trim();
       if (query === "") return true;
 
@@ -318,18 +353,34 @@ export default function ReliquatsPage() {
       {/* Tabs Menu */}
       <div className="flex border-b border-slate-200 dark:border-slate-800 w-full overflow-x-auto whitespace-nowrap scrollbar-none">
         <button
-          onClick={() => setActiveTab("reliquats")}
+          onClick={() => setActiveTab("reliquats_kits")}
           className={cn(
             "flex items-center justify-center flex-1 px-3 py-2.5 md:px-6 md:py-3 border-b-2 text-xs md:text-sm font-bold transition-all cursor-pointer flex-shrink-0",
-            activeTab === "reliquats"
+            activeTab === "reliquats_kits"
               ? "border-brand-teal text-brand-teal"
               : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
           )}
         >
           <Package2 className="w-4 h-4 mr-1.5 flex-shrink-0" />
-          <span className="hidden md:inline">Livraisons en attente (Reliquats)</span>
-          <span className="inline md:hidden">Reliquats</span>
-          {sales.some(tx => tx.missingItems?.some(it => it.status !== "delivered")) && (
+          <span className="hidden md:inline">Reliquats Adhésions</span>
+          <span className="inline md:hidden">Adhésions</span>
+          {sales.some(tx => tx.kitName && tx.missingItems?.some(it => it.status !== "delivered")) && (
+            <span className="ml-1.5 w-2 h-2 rounded-full bg-rose-500 animate-pulse flex-shrink-0"></span>
+          )}
+        </button>
+        <button
+          onClick={() => setActiveTab("reliquats_normal")}
+          className={cn(
+            "flex items-center justify-center flex-1 px-3 py-2.5 md:px-6 md:py-3 border-b-2 text-xs md:text-sm font-bold transition-all cursor-pointer flex-shrink-0",
+            activeTab === "reliquats_normal"
+              ? "border-brand-teal text-brand-teal"
+              : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
+          )}
+        >
+          <Package2 className="w-4 h-4 mr-1.5 flex-shrink-0" />
+          <span className="hidden md:inline">Reliquats Ventes</span>
+          <span className="inline md:hidden">Ventes</span>
+          {sales.some(tx => !tx.kitName && tx.missingItems?.some(it => it.status !== "delivered")) && (
             <span className="ml-1.5 w-2 h-2 rounded-full bg-rose-500 animate-pulse flex-shrink-0"></span>
           )}
         </button>
@@ -365,208 +416,215 @@ export default function ReliquatsPage() {
       </div>
 
       {/* Tab Contents */}
-      {activeTab === "reliquats" ? (
-        <div className="space-y-6">
-          {/* Search bar */}
-          <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
-              <input 
-                type="text" 
-                value={reliquatsSearch}
-                onChange={(e) => setReliquatsSearch(e.target.value)}
-                placeholder="Rechercher par ID transaction, client, code SN ou produit manquant..."
-                className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal transition-all text-sm"
-              />
-            </div>
-          </div>
+      {(activeTab === "reliquats_kits" || activeTab === "reliquats_normal") ? (
+        (() => {
+          const pendingList = activeTab === "reliquats_kits" ? pendingKitsReliquats : pendingNormalReliquats;
+          const completedList = activeTab === "reliquats_kits" ? completedKitsReliquats : completedNormalReliquats;
 
-          {loadingSales ? (
-            <div className="py-12 flex justify-center">
-              <Loader2 className="w-8 h-8 animate-spin text-brand-teal" />
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 gap-6">
-              {/* Outstanding/Pending section */}
-              <div>
-                <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
-                  <AlertCircle className="w-4 h-4 mr-1.5 text-amber-500" />
-                  Reliquats Actifs ({pendingReliquats.length})
-                </h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {pendingReliquats.map((tx) => {
-                    const dateObj = tx.createdAt?.seconds 
-                      ? new Date(tx.createdAt.seconds * 1000) 
-                      : tx.createdAt 
-                        ? new Date(tx.createdAt) 
-                        : new Date();
-                    const dateStr = dateObj.toLocaleDateString("fr-FR");
-
-                    return (
-                      <div key={tx.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col hover:border-amber-200 dark:hover:border-amber-900/50 transition-colors">
-                        {/* Card Header */}
-                        <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4">
-                          <div>
-                            <div className="flex items-center space-x-2">
-                              <span className="p-1 bg-brand-teal/10 rounded-md text-brand-teal"><User className="w-4 h-4" /></span>
-                              <span className="font-bold text-slate-900 dark:text-white">{tx.customerName}</span>
-                            </div>
-                            {tx.customerSN && (
-                              <p className="text-xs text-brand-teal font-bold mt-1 ml-7">ID: {tx.customerSN}</p>
-                            )}
-                          </div>
-                          <div className="text-right flex-shrink-0 text-xs text-slate-500 flex flex-col items-end">
-                            <p className="font-mono font-bold truncate max-w-[100px]">{tx.id}</p>
-                            <p className="flex items-center mt-1"><Calendar className="w-3 h-3 mr-1" /> {dateStr}</p>
-                            <div className="flex space-x-1.5 mt-2 justify-end">
-                              <button
-                                onClick={() => setSelectedTx(tx)}
-                                className="flex items-center px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-brand-teal dark:hover:bg-brand-teal hover:text-white dark:hover:text-white text-slate-600 dark:text-slate-300 rounded-md text-[10px] font-bold transition-all cursor-pointer hover:scale-105"
-                                title="Réimprimer le ticket de caisse"
-                              >
-                                <Printer className="w-3 h-3 mr-1" />
-                                Réimprimer
-                              </button>
-                              <button
-                                onClick={() => handleDeleteEntireReliquat(tx.id)}
-                                className="flex items-center px-2 py-1 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white text-rose-600 dark:text-rose-400 rounded-md text-[10px] font-bold transition-all cursor-pointer hover:scale-105"
-                                title="Supprimer tout le reliquat"
-                              >
-                                <Trash2 className="w-3 h-3 mr-1" />
-                                Supprimer
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Card Content */}
-                        <div className="p-5 flex-1 space-y-4">
-                          {tx.kitName && (
-                            <p className="text-xs bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-bold px-2 py-1 rounded-md inline-block">
-                              Kits: {tx.kitName}
-                            </p>
-                          )}
-                          <div className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-auto max-h-60 w-full relative">
-                            <table className="w-full text-left text-xs min-w-[280px]">
-                              <thead>
-                                <tr className="border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
-                                  <th className="p-3 text-slate-500 font-bold bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-sm">Produit en rupture</th>
-                                  <th className="p-3 text-slate-500 font-bold text-center bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-sm">Qté</th>
-                                  <th className="p-3 text-slate-500 font-bold text-right bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-sm">Action</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                {tx.missingItems?.map((item, idx) => (
-                                  <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
-                                    <td className="p-3 font-semibold text-slate-900 dark:text-white">{item.name}</td>
-                                    <td className="p-3 font-bold text-center">{item.quantity}</td>
-                                    <td className="p-3 text-right">
-                                      <div className="flex items-center justify-end space-x-2">
-                                        {item.status === "delivered" ? (
-                                          <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 rounded-md font-bold text-[10px]">
-                                            Livré
-                                          </span>
-                                        ) : (
-                                          <button
-                                            onClick={() => handleDeliverItem(tx.id, idx)}
-                                            className="px-2.5 py-1 bg-brand-teal text-white hover:bg-brand-teal-dark rounded-md text-[10px] font-bold shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition-transform"
-                                          >
-                                            Livrer
-                                          </button>
-                                        )}
-                                        <button
-                                          onClick={() => handleDeleteReliquatItem(tx.id, idx)}
-                                          className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors"
-                                          title="Supprimer cet article"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  {pendingReliquats.length === 0 && (
-                    <div className="col-span-full py-12 text-center bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
-                      <PackageCheck className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
-                      <p className="text-slate-500 dark:text-slate-400 font-medium">Aucun reliquat en attente de livraison !</p>
-                    </div>
-                  )}
+          return (
+            <div className="space-y-6">
+              {/* Search bar */}
+              <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-200 dark:border-slate-800">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+                  <input 
+                    type="text" 
+                    value={reliquatsSearch}
+                    onChange={(e) => setReliquatsSearch(e.target.value)}
+                    placeholder="Rechercher par ID transaction, client, code SN ou produit manquant..."
+                    className="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg outline-none focus:ring-2 focus:ring-brand-teal transition-all text-sm"
+                  />
                 </div>
               </div>
 
-              {/* Completed/Delivered section */}
-              {completedReliquats.length > 0 && (
-                <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
-                  <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
-                    <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-500" />
-                    Historique des Livraisons Terminées ({completedReliquats.length})
-                  </h2>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-75">
-                    {completedReliquats.map((tx) => {
-                      const dateObj = tx.createdAt?.seconds 
-                        ? new Date(tx.createdAt.seconds * 1000) 
-                        : tx.createdAt 
-                          ? new Date(tx.createdAt) 
-                          : new Date();
-                      const dateStr = dateObj.toLocaleDateString("fr-FR");
+              {loadingSales ? (
+                <div className="py-12 flex justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-brand-teal" />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 gap-6">
+                  {/* Outstanding/Pending section */}
+                  <div>
+                    <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
+                      <AlertCircle className="w-4 h-4 mr-1.5 text-amber-500" />
+                      Reliquats Actifs ({pendingList.length})
+                    </h2>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {pendingList.map((tx) => {
+                        const dateObj = tx.createdAt?.seconds 
+                          ? new Date(tx.createdAt.seconds * 1000) 
+                          : tx.createdAt 
+                            ? new Date(tx.createdAt) 
+                            : new Date();
+                        const dateStr = dateObj.toLocaleDateString("fr-FR");
 
-                      return (
-                        <div key={tx.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
-                          <div className="p-4 bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800 flex justify-between gap-4">
-                            <div>
-                              <p className="font-bold text-slate-600 dark:text-slate-400">{tx.customerName}</p>
-                              {tx.customerSN && <p className="text-xs text-brand-teal font-medium mt-0.5">SN: {tx.customerSN}</p>}
+                        return (
+                          <div key={tx.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col hover:border-amber-200 dark:hover:border-amber-900/50 transition-colors">
+                            {/* Card Header */}
+                            <div className="p-4 bg-slate-50 dark:bg-slate-800/40 border-b border-slate-100 dark:border-slate-800 flex items-start justify-between gap-4">
+                              <div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="p-1 bg-brand-teal/10 rounded-md text-brand-teal"><User className="w-4 h-4" /></span>
+                                  <span className="font-bold text-slate-900 dark:text-white">{tx.customerName}</span>
+                                </div>
+                                {tx.customerSN && (
+                                  <p className="text-xs text-brand-teal font-bold mt-1 ml-7">ID: {tx.customerSN}</p>
+                                )}
+                              </div>
+                              <div className="text-right flex-shrink-0 text-xs text-slate-500 flex flex-col items-end">
+                                <p className="font-mono font-bold truncate max-w-[100px]">{tx.id}</p>
+                                <p className="flex items-center mt-1"><Calendar className="w-3 h-3 mr-1" /> {dateStr}</p>
+                                <div className="flex space-x-1.5 mt-2 justify-end">
+                                  <button
+                                    onClick={() => setSelectedTx(tx)}
+                                    className="flex items-center px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-brand-teal dark:hover:bg-brand-teal hover:text-white dark:hover:text-white text-slate-600 dark:text-slate-300 rounded-md text-[10px] font-bold transition-all cursor-pointer hover:scale-105"
+                                    title="Réimprimer le ticket de caisse"
+                                  >
+                                    <Printer className="w-3 h-3 mr-1" />
+                                    Réimprimer
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteEntireReliquat(tx.id)}
+                                    className="flex items-center px-2 py-1 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white text-rose-600 dark:text-rose-400 rounded-md text-[10px] font-bold transition-all cursor-pointer hover:scale-105"
+                                    title="Supprimer tout le reliquat"
+                                  >
+                                    <Trash2 className="w-3 h-3 mr-1" />
+                                    Supprimer
+                                  </button>
+                                </div>
+                              </div>
                             </div>
-                            <div className="text-right text-xs text-slate-500 flex flex-col items-end">
-                              <p className="font-mono truncate max-w-[80px]">{tx.id}</p>
-                              <p className="mt-0.5 flex items-center"><Calendar className="w-3 h-3 mr-1" /> {dateStr}</p>
-                              <div className="flex space-x-1.5 mt-1.5 justify-end">
-                                <button
-                                  onClick={() => setSelectedTx(tx)}
-                                  className="flex items-center px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-brand-teal dark:hover:bg-brand-teal hover:text-white dark:hover:text-white text-slate-600 dark:text-slate-300 rounded text-[9px] font-bold transition-all cursor-pointer hover:scale-105"
-                                  title="Réimprimer le ticket de caisse"
-                                >
-                                  <Printer className="w-2.5 h-2.5 mr-1" />
-                                  Réimprimer
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteEntireReliquat(tx.id)}
-                                  className="flex items-center px-2 py-0.5 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white text-rose-600 dark:text-rose-400 rounded text-[9px] font-bold transition-all cursor-pointer hover:scale-105"
-                                  title="Supprimer tout le reliquat"
-                                >
-                                  <Trash2 className="w-2.5 h-2.5 mr-1" />
-                                  Supprimer
-                                </button>
+
+                            {/* Card Content */}
+                            <div className="p-5 flex-1 space-y-4">
+                              {tx.kitName && (
+                                <p className="text-xs bg-indigo-50 dark:bg-indigo-950/20 text-indigo-600 dark:text-indigo-400 font-bold px-2 py-1 rounded-md inline-block">
+                                  Kits: {tx.kitName}
+                                </p>
+                              )}
+                              <div className="border border-slate-100 dark:border-slate-800 rounded-xl overflow-auto max-h-60 w-full relative">
+                                <table className="w-full text-left text-xs min-w-[280px]">
+                                  <thead>
+                                    <tr className="border-b border-slate-100 dark:border-slate-800 sticky top-0 z-10">
+                                      <th className="p-3 text-slate-500 font-bold bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-sm">Produit en rupture</th>
+                                      <th className="p-3 text-slate-500 font-bold text-center bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-sm">Qté</th>
+                                      <th className="p-3 text-slate-500 font-bold text-right bg-slate-50/90 dark:bg-slate-800/90 backdrop-blur-sm">Action</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                    {tx.missingItems?.map((item, idx) => (
+                                      <tr key={idx} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/20">
+                                        <td className="p-3 font-semibold text-slate-900 dark:text-white">{item.name}</td>
+                                        <td className="p-3 font-bold text-center">{item.quantity}</td>
+                                        <td className="p-3 text-right">
+                                          <div className="flex items-center justify-end space-x-2">
+                                            {item.status === "delivered" ? (
+                                              <span className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400 rounded-md font-bold text-[10px]">
+                                                Livré
+                                              </span>
+                                            ) : (
+                                              <button
+                                                onClick={() => handleDeliverItem(tx.id, idx)}
+                                                className="px-2.5 py-1 bg-brand-teal text-white hover:bg-brand-teal-dark rounded-md text-[10px] font-bold shadow-sm cursor-pointer hover:scale-105 active:scale-95 transition-transform"
+                                              >
+                                                Livrer
+                                              </button>
+                                            )}
+                                            <button
+                                              onClick={() => handleDeleteReliquatItem(tx.id, idx)}
+                                              className="p-1 text-slate-400 hover:text-rose-500 rounded transition-colors"
+                                              title="Supprimer cet article"
+                                            >
+                                              <Trash2 className="w-3.5 h-3.5" />
+                                            </button>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
                               </div>
                             </div>
                           </div>
-                          <div className="p-4 bg-white dark:bg-slate-900">
-                            <ul className="text-xs text-slate-500 space-y-1">
-                              {tx.missingItems?.map((item, idx) => (
-                                <li key={idx} className="flex justify-between items-center py-1">
-                                  <span>{item.quantity}x {item.name}</span>
-                                  <span className="text-emerald-500 font-bold">✓ Livré</span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
+                        );
+                      })}
+                      {pendingList.length === 0 && (
+                        <div className="col-span-full py-12 text-center bg-white dark:bg-slate-900 border border-dashed border-slate-200 dark:border-slate-800 rounded-2xl">
+                          <PackageCheck className="w-12 h-12 text-slate-300 dark:text-slate-700 mx-auto mb-3" />
+                          <p className="text-slate-500 dark:text-slate-400 font-medium">Aucun reliquat en attente de livraison !</p>
                         </div>
-                      );
-                    })}
+                      )}
+                    </div>
                   </div>
+
+                  {/* Completed/Delivered section */}
+                  {completedList.length > 0 && (
+                    <div className="pt-6 border-t border-slate-200 dark:border-slate-800">
+                      <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4 flex items-center">
+                        <CheckCircle2 className="w-4 h-4 mr-1.5 text-emerald-500" />
+                        Historique des Livraisons Terminées ({completedList.length})
+                      </h2>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 opacity-75">
+                        {completedList.map((tx) => {
+                          const dateObj = tx.createdAt?.seconds 
+                            ? new Date(tx.createdAt.seconds * 1000) 
+                            : tx.createdAt 
+                              ? new Date(tx.createdAt) 
+                              : new Date();
+                          const dateStr = dateObj.toLocaleDateString("fr-FR");
+
+                          return (
+                            <div key={tx.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col">
+                              <div className="p-4 bg-slate-50/50 dark:bg-slate-800/20 border-b border-slate-100 dark:border-slate-800 flex justify-between gap-4">
+                                <div>
+                                  <p className="font-bold text-slate-600 dark:text-slate-400">{tx.customerName}</p>
+                                  {tx.customerSN && <p className="text-xs text-brand-teal font-medium mt-0.5">SN: {tx.customerSN}</p>}
+                                </div>
+                                <div className="text-right text-xs text-slate-500 flex flex-col items-end">
+                                  <p className="font-mono truncate max-w-[80px]">{tx.id}</p>
+                                  <p className="mt-0.5 flex items-center"><Calendar className="w-3 h-3 mr-1" /> {dateStr}</p>
+                                  <div className="flex space-x-1.5 mt-1.5 justify-end">
+                                    <button
+                                      onClick={() => setSelectedTx(tx)}
+                                      className="flex items-center px-2 py-0.5 bg-slate-100 dark:bg-slate-800 hover:bg-brand-teal dark:hover:bg-brand-teal hover:text-white dark:hover:text-white text-slate-600 dark:text-slate-300 rounded text-[9px] font-bold transition-all cursor-pointer hover:scale-105"
+                                      title="Réimprimer le ticket de caisse"
+                                    >
+                                      <Printer className="w-2.5 h-2.5 mr-1" />
+                                      Réimprimer
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteEntireReliquat(tx.id)}
+                                      className="flex items-center px-2 py-0.5 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-600 hover:text-white dark:hover:bg-rose-600 dark:hover:text-white text-rose-600 dark:text-rose-400 rounded text-[9px] font-bold transition-all cursor-pointer hover:scale-105"
+                                      title="Supprimer tout le reliquat"
+                                    >
+                                      <Trash2 className="w-2.5 h-2.5 mr-1" />
+                                      Supprimer
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="p-4 bg-white dark:bg-slate-900">
+                                <ul className="text-xs text-slate-500 space-y-1">
+                                  {tx.missingItems?.map((item, idx) => (
+                                    <li key={idx} className="flex justify-between items-center py-1">
+                                      <span>{item.quantity}x {item.name}</span>
+                                      <span className="text-emerald-500 font-bold">✓ Livré</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
-          )}
-        </div>
+          );
+        })()
       ) : activeTab === "debts" ? (
         <div className="space-y-6">
           {/* Search bar */}

@@ -149,18 +149,14 @@ export default function SalesPage() {
 
     const product = availableProducts.find(p => p.barcode === code);
     if (product) {
-      if (product.stock > 0) {
-        // Open modal to ask quantity and client info
-        setScannedProduct(product);
-        setScanQuantity(1);
-        setScanClientName("");
-        setScanClientSN("");
-        setScanPaymentMethod("cash");
-        setScanModalOpen(true);
-        setSearchQuery("");
-      } else {
-        alert(`Le produit "${product.name}" est en rupture de stock !`);
-      }
+      // Open modal to ask quantity and client info
+      setScannedProduct(product);
+      setScanQuantity(1);
+      setScanClientName("");
+      setScanClientSN("");
+      setScanPaymentMethod("cash");
+      setScanModalOpen(true);
+      setSearchQuery("");
     } else {
       alert(`Produit non trouvé pour le code : ${code}`);
     }
@@ -170,12 +166,8 @@ export default function SalesPage() {
     if (e.key === "Enter" && searchQuery.trim() !== "") {
       const exactMatch = availableProducts.find(p => p.barcode === searchQuery.trim());
       if (exactMatch) {
-        if (exactMatch.stock > 0) {
-          addToCart(exactMatch);
-          setSearchQuery("");
-        } else {
-          alert(`Le produit "${exactMatch.name}" est en rupture de stock !`);
-        }
+        addToCart(exactMatch);
+        setSearchQuery("");
       }
     }
   };
@@ -187,18 +179,9 @@ export default function SalesPage() {
 
   // Updated addToCart to accept quantity
   const addToCart = (product: Product, qty: number = 1) => {
-    if (product.stock < qty) {
-      alert(`Stock insuffisant pour ${product.name}`);
-      return;
-    }
-
     const existing = cart.find(item => item.id === product.id);
     if (existing) {
       const newQty = existing.quantity + qty;
-      if (newQty > product.stock) {
-        alert(`Stock maximum atteint pour ${product.name}`);
-        return;
-      }
       setCart(cart.map(item => item.id === product.id ? { ...item, quantity: newQty } : item));
     } else {
       setCart([...cart, { ...product, quantity: qty }]);
@@ -206,19 +189,14 @@ export default function SalesPage() {
   };
 
   const updateQuantity = (id: string, delta: number) => {
-    const product = availableProducts.find(p => p.id === id);
     setCart(cart.map(item => {
       if (item.id === id) {
-        const newQty = Math.max(1, item.quantity + delta);
-        if (product && newQty > product.stock) {
-          alert(`Stock insuffisant. Maximum: ${product.stock}`);
-          return item;
-        }
-        return { ...item, quantity: newQty };
+        return { ...item, quantity: Math.max(1, item.quantity + delta) };
       }
       return item;
     }));
   };
+
 
   const removeFromCart = (id: string) => {
     setCart(cart.filter(item => item.id !== id));
@@ -244,6 +222,25 @@ export default function SalesPage() {
 
     try {
       const batch = writeBatch(db);
+
+      // Calculer les reliquats (missingItems) pour les produits hors stock
+      const missingItems: {
+        name: string;
+        quantity: number;
+        status: "pending" | "delivered";
+      }[] = [];
+
+      cart.forEach(item => {
+        const originalProduct = availableProducts.find(p => p.id === item.id);
+        const currentStock = originalProduct ? Math.max(0, originalProduct.stock) : 0;
+        if (currentStock < item.quantity) {
+          missingItems.push({
+            name: item.name,
+            quantity: item.quantity - currentStock,
+            status: "pending"
+          });
+        }
+      });
 
       // 1. Créer la commande dans "sales"
       const salesRef = doc(collection(db, "sales"));
@@ -271,6 +268,7 @@ export default function SalesPage() {
           pv: item.pv,
           quantity: item.quantity
         })),
+        missingItems: missingItems,
         createdAt: serverTimestamp()
       });
 
@@ -327,6 +325,7 @@ export default function SalesPage() {
           pv: item.pv,
           quantity: item.quantity
         })),
+        missingItems: missingItems,
         createdAt: { seconds: getNowSeconds() }
       };
 
@@ -410,19 +409,15 @@ export default function SalesPage() {
                 <button 
                   key={product.id}
                   onClick={() => addToCart(product)}
-                  disabled={product.stock <= 0}
                   className={cn(
                     "flex items-center justify-between p-4 rounded-xl border text-left group transition-all",
                     product.stock > 0 
                       ? "border-slate-200 dark:border-slate-800 hover:border-brand-teal hover:bg-brand-teal/5 dark:hover:bg-brand-teal/10" 
-                      : "border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 opacity-60 cursor-not-allowed"
+                      : "border-rose-100 dark:border-rose-950/30 bg-rose-50/10 dark:bg-rose-950/5 hover:border-brand-teal hover:bg-brand-teal/5"
                   )}
                 >
                   <div>
-                    <p className={cn(
-                      "font-bold",
-                      product.stock > 0 ? "text-slate-900 dark:text-white group-hover:text-brand-teal" : "text-slate-500"
-                    )}>{product.name}</p>
+                    <p className="font-bold text-slate-900 dark:text-white group-hover:text-brand-teal">{product.name}</p>
                     <p className="text-sm text-slate-500">
                       {product.price.toLocaleString()} FCFA | <span className="text-brand-teal font-medium">{product.pv} PV</span>
                     </p>
@@ -430,10 +425,10 @@ export default function SalesPage() {
                       "text-xs font-bold mt-1",
                       product.stock > 10 ? "text-emerald-500" : product.stock > 0 ? "text-amber-500" : "text-rose-500"
                     )}>
-                      Stock: {product.stock}
+                      {product.stock > 0 ? `Stock: ${product.stock}` : "Rupture de stock (Reliquat)"}
                     </p>
                   </div>
-                  {product.stock > 0 && <Plus className="w-5 h-5 text-slate-400 group-hover:text-brand-teal" />}
+                  <Plus className="w-5 h-5 text-slate-400 group-hover:text-brand-teal" />
                 </button>
               ))}
               {filteredProducts.length === 0 && (
@@ -470,6 +465,11 @@ export default function SalesPage() {
                     <div className="flex-1">
                       <p className="font-bold text-slate-900 dark:text-white">{item.name}</p>
                       <p className="text-xs text-slate-500">{item.price.toLocaleString()} FCFA / unité</p>
+                      {item.stock < item.quantity && (
+                        <p className="text-[10px] text-rose-500 font-bold mt-1">
+                          ⚠️ {item.quantity - Math.max(0, item.stock)} en reliquat (à livrer après)
+                        </p>
+                      )}
                     </div>
                     <div className="flex items-center justify-between sm:justify-end w-full sm:w-auto space-x-4">
                       <div className="flex items-center bg-white dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-700">

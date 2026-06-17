@@ -965,21 +965,21 @@ export default function EcashPage() {
                   {stats.totalSalesTurnover.toLocaleString()} FCFA
                 </p>
                 <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5 text-xs font-medium text-slate-500">
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-slate-400 uppercase">Achats Stock (Prix Achat)</span>
-                    <span className="text-sm font-black text-slate-700 dark:text-slate-200">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="font-bold text-slate-400 uppercase text-[10px] sm:text-xs">Achats Stock (Prix Achat)</span>
+                    <span className="text-xs sm:text-sm font-black text-slate-700 dark:text-slate-200 whitespace-nowrap">
                       {stats.totalStockPurchases.toLocaleString()} FCFA
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-slate-400 uppercase">Longrich Commission (6%)</span>
-                    <span className="text-sm font-black text-emerald-500">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="font-bold text-slate-400 uppercase text-[10px] sm:text-xs">Longrich Commission (6%)</span>
+                    <span className="text-xs sm:text-sm font-black text-emerald-500 whitespace-nowrap">
                       +{stats.longrichCommission.toLocaleString()} FCFA
                     </span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="font-bold text-slate-400 uppercase">Bénéfice Ventes</span>
-                    <span className="text-sm font-black text-emerald-500">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="font-bold text-slate-400 uppercase text-[10px] sm:text-xs">Bénéfice Ventes</span>
+                    <span className="text-xs sm:text-sm font-black text-emerald-500 whitespace-nowrap">
                       +{stats.totalSalesProfit.toLocaleString()} FCFA
                     </span>
                   </div>
@@ -1003,15 +1003,15 @@ export default function EcashPage() {
                   {(stats.totalWithdrawalProfit + stats.totalDepositProfit).toLocaleString()} FCFA
                 </p>
                 <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-1.5 text-xs font-medium text-slate-500">
-                  <div className="flex justify-between">
-                    <span>Profits Retraits membres (3%) :</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="font-bold text-slate-400 uppercase text-[10px] sm:text-xs">Profits Retraits membres (3%)</span>
+                    <span className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200 whitespace-nowrap">
                       +{stats.totalWithdrawalProfit.toLocaleString()} F
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Profits Dépôts siège (3%/4%) :</span>
-                    <span className="font-bold text-slate-800 dark:text-slate-200">
+                  <div className="flex justify-between items-start gap-2">
+                    <span className="font-bold text-slate-400 uppercase text-[10px] sm:text-xs">Profits Dépôts siège (3%/4%)</span>
+                    <span className="text-xs sm:text-sm font-black text-slate-800 dark:text-slate-200 whitespace-nowrap">
                       +{stats.totalDepositProfit.toLocaleString()} F
                     </span>
                   </div>
@@ -1034,9 +1034,9 @@ export default function EcashPage() {
                 <p className="text-2xl font-black text-slate-900 dark:text-white mt-1">
                   {stats.totalExpensesAmount.toLocaleString()} FCFA
                 </p>
-                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center text-xs font-medium text-slate-500">
-                  <span>Loyers, électricité, salaires, etc.</span>
-                  <span className="font-bold text-rose-500">
+                <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-start gap-2 text-xs font-medium text-slate-500">
+                  <span className="font-bold text-slate-400 uppercase text-[10px] sm:text-xs">Loyers, électricité, salaires, etc.</span>
+                  <span className="text-xs sm:text-sm font-black text-rose-500 whitespace-nowrap">
                     -{stats.totalExpensesAmount.toLocaleString()} F
                   </span>
                 </div>

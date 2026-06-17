@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { User, X, Loader2, Calendar, MapPin, Phone, Hash, ShieldCheck, Activity } from "lucide-react";
-import { doc, getDoc } from "firebase/firestore";
+import { User, X, Loader2, Calendar, MapPin, Phone, Hash, ShieldCheck, Activity, ShoppingBag, Clock } from "lucide-react";
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 interface CustomerDetailsModalProps {
@@ -13,15 +13,23 @@ interface CustomerDetailsModalProps {
 export default function CustomerDetailsModal({ customerSN, transactionCustomerName, fallbackData, onClose }: CustomerDetailsModalProps) {
   const [loading, setLoading] = useState(true);
   const [customer, setCustomer] = useState<any>(null);
+  const [purchases, setPurchases] = useState<any[]>([]);
+  const [loadingPurchases, setLoadingPurchases] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    async function fetchCustomer() {
+    async function fetchCustomerData() {
       if (!customerSN) {
         setLoading(false);
-        setError("Identifiant du client introuvable pour cette transaction.");
+        setLoadingPurchases(false);
+        setError("Identifiant du client introuvable.");
         return;
       }
+
+      setLoading(true);
+      setLoadingPurchases(true);
+
+      // 1. Charger le profil
       try {
         const docRef = doc(db, "customers", customerSN);
         const docSnap = await getDoc(docRef);
@@ -32,12 +40,43 @@ export default function CustomerDetailsModal({ customerSN, transactionCustomerNa
         }
       } catch (err) {
         console.error("Erreur de chargement du client :", err);
-        setError("Erreur lors du chargement des informations du client.");
+        setError("Erreur lors du chargement des informations.");
       } finally {
         setLoading(false);
       }
+
+      // 2. Charger l'historique d'achats (sales)
+      try {
+        const qSales = query(
+          collection(db, "sales"),
+          where("customerSN", "==", customerSN)
+        );
+        const snap = await getDocs(qSales);
+        const fetchedSales = snap.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })).sort((a: any, b: any) => {
+          const timeA = a.createdAt?.seconds 
+            ? a.createdAt.seconds * 1000 
+            : a.createdAt 
+              ? new Date(a.createdAt).getTime() 
+              : 0;
+          const timeB = b.createdAt?.seconds 
+            ? b.createdAt.seconds * 1000 
+            : b.createdAt 
+              ? new Date(b.createdAt).getTime() 
+              : 0;
+          return timeB - timeA;
+        });
+        setPurchases(fetchedSales);
+      } catch (err) {
+        console.error("Erreur de chargement des achats :", err);
+      } finally {
+        setLoadingPurchases(false);
+      }
     }
-    fetchCustomer();
+
+    fetchCustomerData();
   }, [customerSN]);
 
   const nin = customer?.nin || fallbackData?.nin;
@@ -139,6 +178,88 @@ export default function CustomerDetailsModal({ customerSN, transactionCustomerNa
                     <p className="font-bold text-purple-700 dark:text-purple-300">{placementCode || "Aucun"}</p>
                   </div>
                 </div>
+              </div>
+
+              {/* Historique des Achats */}
+              <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+                <h4 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-3 flex items-center">
+                  <ShoppingBag className="w-4 h-4 mr-1.5 text-brand-teal" />
+                  Historique des Achats ({purchases.length})
+                </h4>
+                
+                {loadingPurchases ? (
+                  <div className="flex justify-center py-4">
+                    <Loader2 className="w-6 h-6 animate-spin text-brand-teal" />
+                  </div>
+                ) : purchases.length === 0 ? (
+                  <p className="text-xs text-slate-400 italic">Aucun achat enregistré pour ce membre.</p>
+                ) : (
+                  <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                    {purchases.map((sale) => {
+                      const date = sale.createdAt?.seconds 
+                        ? new Date(sale.createdAt.seconds * 1000) 
+                        : sale.createdAt 
+                          ? new Date(sale.createdAt) 
+                          : new Date();
+                      const dateStr = date.toLocaleDateString("fr-FR", { day: 'numeric', month: 'short', year: 'numeric' });
+                      
+                      const itemsStr = sale.items && Array.isArray(sale.items)
+                        ? sale.items.map((it: any) => `${it.quantity}x ${it.name}`).join(", ")
+                        : sale.kitName ? `Kit ${sale.kitName}` : "Achat inconnu";
+
+                      const saleTypeLabel = sale.saleType === "upgrade" 
+                        ? "Rehaussement" 
+                        : "Détail";
+
+                      const paymentStatusLabel = sale.paymentStatus === "paid" || sale.status === "paid"
+                        ? "Payé"
+                        : sale.paymentStatus === "partial" || sale.status === "partial"
+                          ? "Avance"
+                          : "Non payé";
+
+                      return (
+                        <div key={sale.id} className="p-3 bg-slate-50 dark:bg-slate-800/40 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2 text-xs">
+                          <div className="flex justify-between items-center">
+                            <span className="font-bold text-slate-700 dark:text-slate-200 flex items-center">
+                              <Clock className="w-3.5 h-3.5 mr-1 text-slate-400" />
+                              {dateStr}
+                            </span>
+                            <span className="font-mono text-[10px] text-slate-400">ID: {sale.id.slice(0, 8)}</span>
+                          </div>
+                          
+                          <p className="font-medium text-slate-650 dark:text-slate-300 break-words">
+                            {itemsStr}
+                          </p>
+
+                          <div className="flex justify-between items-center pt-1.5 border-t border-slate-100 dark:border-slate-800">
+                            <div className="space-x-1">
+                              <span className="px-1.5 py-0.5 bg-slate-100 dark:bg-slate-800 text-slate-500 rounded text-[9px] font-bold">
+                                {saleTypeLabel}
+                              </span>
+                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                                paymentStatusLabel === "Payé" 
+                                  ? "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-600 dark:text-emerald-400"
+                                  : paymentStatusLabel === "Avance"
+                                    ? "bg-amber-50 dark:bg-amber-950/20 text-amber-600 dark:text-amber-400"
+                                    : "bg-rose-50 dark:bg-rose-950/20 text-rose-600 dark:text-rose-400"
+                              }`}>
+                                {paymentStatusLabel}
+                              </span>
+                            </div>
+                            <div className="text-right flex items-center space-x-1.5">
+                              <span className="font-black text-slate-900 dark:text-white">
+                                {Number(sale.totalAmount || 0).toLocaleString()} F
+                              </span>
+                              <span className="font-bold text-brand-teal bg-brand-teal/10 px-1.5 py-0.5 rounded text-[10px]">
+                                {sale.totalPV || 0} PV
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           )}

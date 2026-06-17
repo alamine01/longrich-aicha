@@ -13,7 +13,8 @@ import {
   Coins, 
   ArrowDownCircle, 
   ArrowUpCircle,
-  FileText
+  FileText,
+  AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { collection, addDoc, onSnapshot, query, orderBy, deleteDoc, doc, serverTimestamp } from "firebase/firestore";
@@ -50,13 +51,16 @@ export default function EcashPage() {
   const [ecash, setEcash] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [stockAdditions, setStockAdditions] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
   
   // Loading States
   const [loadingSales, setLoadingSales] = useState(true);
   const [loadingEcash, setLoadingEcash] = useState(true);
   const [loadingExpenses, setLoadingExpenses] = useState(true);
   const [loadingStockAdditions, setLoadingStockAdditions] = useState(true);
+  const [loadingProducts, setLoadingProducts] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [migrating, setMigrating] = useState(false);
 
   // Form States - Withdrawal
   const [wName, setWName] = useState("");
@@ -129,11 +133,25 @@ export default function EcashPage() {
       setLoadingStockAdditions(false);
     });
 
+    // 5. Listen to Products
+    const unsubscribeProducts = onSnapshot(collection(db, "products"), (snapshot) => {
+      const fetchedProducts = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setProducts(fetchedProducts);
+      setLoadingProducts(false);
+    }, (err) => {
+      console.error("Products loading error:", err);
+      setLoadingProducts(false);
+    });
+
     return () => {
       unsubscribeSales();
       unsubscribeEcash();
       unsubscribeExpenses();
       unsubscribeStockAdditions();
+      unsubscribeProducts();
     };
   }, []);
 
@@ -419,7 +437,44 @@ export default function EcashPage() {
     return ecash.filter(item => item.type === "deposit");
   }, [ecash]);
 
-  const loading = loadingSales || loadingEcash || loadingExpenses || loadingStockAdditions;
+  const loading = loadingSales || loadingEcash || loadingExpenses || loadingStockAdditions || loadingProducts;
+
+  // Find products that have stock > 0 but no stock_additions entries
+  const productsMissingAdditions = useMemo(() => {
+    if (loading) return [];
+    const productIdsWithAdditions = new Set(stockAdditions.map(sa => sa.productId));
+    return products.filter(p => Number(p.stock) > 0 && !productIdsWithAdditions.has(p.id));
+  }, [products, stockAdditions, loading]);
+
+  const handleMigrateStockAdditions = async () => {
+    if (productsMissingAdditions.length === 0) return;
+    if (!confirm(`Voulez-vous générer automatiquement l'historique d'achat pour les ${productsMissingAdditions.length} produit(s) concerné(s) ?`)) return;
+
+    setMigrating(true);
+    try {
+      const { writeBatch, doc, collection } = await import("firebase/firestore");
+      const batch = writeBatch(db);
+
+      productsMissingAdditions.forEach(product => {
+        const additionRef = doc(collection(db, "stock_additions"));
+        batch.set(additionRef, {
+          productId: product.id,
+          productName: product.name,
+          quantityAdded: Number(product.stock),
+          purchasePrice: Number(product.purchasePrice || 0),
+          createdAt: product.createdAt || serverTimestamp()
+        });
+      });
+
+      await batch.commit();
+      alert("Régularisation effectuée avec succès ! Les commissions et prix d'achat ont été recalculés.");
+    } catch (error) {
+      console.error("Migration error:", error);
+      alert("Une erreur est survenue lors de la régularisation.");
+    } finally {
+      setMigrating(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -862,6 +917,34 @@ export default function EcashPage() {
               <option value="all">Tout l'historique</option>
             </select>
           </div>
+
+          {/* Warning Banner for Missing Stock Additions */}
+          {productsMissingAdditions.length > 0 && (
+            <div className="p-4 bg-amber-50 dark:bg-amber-950/25 border border-amber-200 dark:border-amber-900/40 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 animate-in fade-in slide-in-from-top-2">
+              <div className="flex items-center space-x-3 text-amber-800 dark:text-amber-300">
+                <AlertCircle className="w-6 h-6 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-bold text-amber-900 dark:text-amber-400">Anciens produits sans historique d'achat</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {productsMissingAdditions.length} produit(s) créé(s) avant la mise à jour n'ont pas d'historique d'approvisionnement. Cela fausse le calcul des commissions (6%).
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={handleMigrateStockAdditions}
+                disabled={migrating}
+                className="w-full sm:w-auto px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all whitespace-nowrap cursor-pointer hover:scale-[1.02] flex items-center justify-center space-x-1"
+              >
+                {migrating ? (
+                  <>
+                    <Loader2 className="w-3 h-3 animate-spin mr-1" /> Régularisation...
+                  </>
+                ) : (
+                  "Régulariser maintenant"
+                )}
+              </button>
+            </div>
+          )}
 
           {/* Stats Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">

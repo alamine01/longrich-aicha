@@ -354,44 +354,8 @@ export default function EcashPage() {
       }
     });
 
-    // Calculate total purchase cost of all sold products (turnover - profit)
-    let totalStockPurchases = 0;
-    sales.forEach((sale) => {
-      const dateMs = getCreatedAtMs(sale);
-      if (!dateMs) return;
-
-      if (period === "all" || (dateMs >= currentStart && dateMs < currentEnd)) {
-        let saleCost = 0;
-        if (sale.items && Array.isArray(sale.items)) {
-          sale.items.forEach((item: any) => {
-            const itemPurchasePrice = Number(item.purchasePrice || 0);
-            saleCost += itemPurchasePrice * Number(item.quantity || 1);
-          });
-        }
-        const saleTotalAmount = Number(sale.totalAmount || 0);
-        const getKitProfit = (kitName: string): number => {
-          const name = kitName.toLowerCase();
-          if (name.includes("depuis")) {
-            const parts = name.split("depuis");
-            const startingPart = parts[1] || "";
-            if (startingPart.includes("q-silver") || startingPart.includes("q silver")) {
-              return 5000;
-            }
-            return 10000;
-          }
-          if (name.includes("q-silver") || name.includes("q silver")) {
-            return 5000;
-          }
-          return 10000;
-        };
-
-        const saleProfit = sale.kitName ? getKitProfit(sale.kitName) : saleTotalAmount - saleCost;
-        const salePurchaseCost = saleTotalAmount - saleProfit;
-
-        totalStockPurchases += salePurchaseCost;
-      }
-    });
-
+    // L'achat de stock est calculé directement sur ce qui est encaissé (Chiffre d'Affaires Encaissé - Bénéfice Ventes Encaissés)
+    const totalStockPurchases = Math.max(0, totalSalesTurnover - totalSalesProfit);
     const longrichCommission = totalStockPurchases * 0.06;
 
     // E-cash totals

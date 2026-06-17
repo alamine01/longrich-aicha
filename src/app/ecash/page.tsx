@@ -354,37 +354,45 @@ export default function EcashPage() {
       }
     });
 
-    // Calculate total stock additions purchase value
+    // Calculate total purchase cost of all sold products (turnover - profit)
     let totalStockPurchases = 0;
-    stockAdditions.forEach((addition) => {
-      const dateMs = getCreatedAtMs(addition);
-      if (!dateMs) return;
-
-      if (period === "all" || (dateMs >= currentStart && dateMs < currentEnd)) {
-        const qty = Number(addition.quantityAdded || 0);
-        const price = Number(addition.purchasePrice || 0);
-        totalStockPurchases += qty * price;
-      }
-    });
-
-    // Calculate total sold products purchase value to compute 6% commission on products sold
-    let totalSoldProductsPurchaseValue = 0;
     sales.forEach((sale) => {
       const dateMs = getCreatedAtMs(sale);
       if (!dateMs) return;
 
       if (period === "all" || (dateMs >= currentStart && dateMs < currentEnd)) {
+        let saleCost = 0;
         if (sale.items && Array.isArray(sale.items)) {
           sale.items.forEach((item: any) => {
             const itemPurchasePrice = Number(item.purchasePrice || 0);
-            const qty = Number(item.quantity || 1);
-            totalSoldProductsPurchaseValue += itemPurchasePrice * qty;
+            saleCost += itemPurchasePrice * Number(item.quantity || 1);
           });
         }
+        const saleTotalAmount = Number(sale.totalAmount || 0);
+        const getKitProfit = (kitName: string): number => {
+          const name = kitName.toLowerCase();
+          if (name.includes("depuis")) {
+            const parts = name.split("depuis");
+            const startingPart = parts[1] || "";
+            if (startingPart.includes("q-silver") || startingPart.includes("q silver")) {
+              return 5000;
+            }
+            return 10000;
+          }
+          if (name.includes("q-silver") || name.includes("q silver")) {
+            return 5000;
+          }
+          return 10000;
+        };
+
+        const saleProfit = sale.kitName ? getKitProfit(sale.kitName) : saleTotalAmount - saleCost;
+        const salePurchaseCost = saleTotalAmount - saleProfit;
+
+        totalStockPurchases += salePurchaseCost;
       }
     });
 
-    const longrichCommission = totalSoldProductsPurchaseValue * 0.06;
+    const longrichCommission = totalStockPurchases * 0.06;
 
     // E-cash totals
     let totalWithdrawalAmount = 0;

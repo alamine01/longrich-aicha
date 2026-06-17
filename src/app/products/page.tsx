@@ -121,10 +121,10 @@ export default function ProductsPage() {
         productData.barcode = barcode.trim() || editingProduct.barcode || generateBarcode();
         await updateDoc(doc(db, "products", editingProduct.id), productData);
 
-        // Log stock addition if new stock is greater than old stock
+        // Log stock addition or correction if stock has changed
         const newStockVal = Number(stock);
         const oldStockVal = Number(editingProduct.stock || 0);
-        if (newStockVal > oldStockVal) {
+        if (newStockVal !== oldStockVal) {
           const diff = newStockVal - oldStockVal;
           await addDoc(collection(db, "stock_additions"), {
             productId: editingProduct.id,
